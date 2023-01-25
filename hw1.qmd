@@ -1,0 +1,6 @@
+---
+title: "hw1"
+format: pdf
+editor: visual
+---
+
