@@ -75,3 +75,64 @@ Var(Y) &= E[Y^2] - E[Y]^2 \\
 &= E[Var(Y|X)] + Var(E[Y|X]) \qquad \text{defintion of variance}
 \end{aligned}
 $$
+
+
+## 2
+
+Prove each of the following statements. In each, let $X_{(n)}$ and $Y_{(n)}$ be sequences of random variables, and let c and d be constants.
+
+### a
+
+If $X_{(n)} \rightarrow c$ and $Y_{n} \rightarrow d$ both in probability then
+
+$$
+
+$$
+
+
+## 3
+
+
+## 4
+
+We know that $\sqrt{n}(\hat{\theta} - \theta) \xrightarrow{d} N(0, \sigma^2)$ and $\hat{\sigma} \xrightarrow{p}\sigma$ and we can write
+
+$$
+\frac{\sqrt{n}(\hat{\theta} - \theta)}{\hat{\sigma}} = \frac{\sigma}{\hat{\sigma}}\frac{\sqrt{n}(\hat{\theta} - \theta)}{\sigma}
+$$
+
+Next we apply the continuous mapping theorem we can say that
+
+$$
+\frac{\sigma}{\hat{\sigma}} \xrightarrow{p} \frac{\sigma}{\sigma} \qquad \text{and} \qquad \frac{\sqrt{n}(\hat{\theta} - \theta)}{\sigma} \xrightarrow{d} N(0, 1)
+$$
+
+Next Slutsky's theorem tells us that
+
+$$
+\frac{\sqrt{n}(\hat{\theta} - \theta)}{\hat{\sigma}} = \frac{\sigma}{\hat{\sigma}}\frac{\sqrt{n}(\hat{\theta} - \theta)}{\sigma} \xrightarrow{d} 1\cdot N(0, 1)
+$$
+
+And by definition of convergence in distribution we get that
+
+$$
+\lim_{n\to\infty}P\bigg(-z_{1-\alpha /2} \le \frac{\sqrt{n}(\hat{\theta} - \theta)}{\hat{\sigma}} \le z_{1-\alpha/2} \bigg) = 1- \alpha
+$$
+
+We can then do some rearranging within the parentheses
+
+$$
+\begin{aligned}
+-z_{1-\alpha /2} \le \frac{\sqrt{n}(\hat{\theta} - \theta)}{\hat{\sigma}} \le z_{1-\alpha/2} &= -z_{1-\alpha /2}\frac{\hat{\sigma}}{\sqrt{n}} \le \hat{\theta} - \theta \le z_{1-\alpha/2}\frac{\hat{\sigma}}{\sqrt{n}} \\
+&=\hat{\theta} - z_{1-\alpha /2}\frac{\hat{\sigma}}{\sqrt{n}} \le -\theta \le \hat{\theta} + z_{1-\alpha /2}\frac{\hat{\sigma}}{\sqrt{n}} \\
+&= \hat{\theta} - z_{1-\alpha /2}\frac{\hat{\sigma}}{\sqrt{n}} \le \theta \le \hat{\theta} + z_{1-\alpha /2}\frac{\hat{\sigma}}{\sqrt{n}} \qquad \text{symmetry of normal dist}
+\end{aligned}
+$$
+
+so we have that 
+
+$$
+\lim_{n\to\infty}P\bigg(\hat{\theta} - z_{1-\alpha /2}\frac{\hat{\sigma}}{\sqrt{n}} \le \theta \le \hat{\theta} + z_{1-\alpha /2}\frac{\hat{\sigma}}{\sqrt{n}}\bigg) = 1 - \alpha
+$$
+
+as desired.
