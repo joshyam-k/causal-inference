@@ -1,6 +1,77 @@
 ---
 title: "hw1"
 format: pdf
+pdf-engine: xelatex
+mainfont: Times
 editor: visual
 ---
 
+## 1
+
+Prove each of the following. You may use the results from previous parts of the problem in further proofs. For each proof, I have indicated where you should start. For the purposes of these proofs here, assume that X, Y , and Z are continuous random variables. Assume that a, b and c are constants.
+
+### a
+
+$$
+\begin{aligned}
+E[aX + bY + c] &= \int\int (ax + by + c)p(x,y)dx dy \\
+&= \int\int axp(x,y)dx dy + \int\int byp(x,y)dx dy + \int\int c p(x,y)dx dy \\
+&= a\int x\bigg[\int p(x,y) dy \bigg] dx + b\int y\bigg[\int p(x,y) dx \bigg] dy + c\int\int p(x,y) dx dy \\
+&= a\int x p(x) dx + b\int yp(y) dy + c\cdot 1 \\
+&= aE[X] + bE[Y] + c
+\end{aligned}
+$$
+
+### b
+
+$$
+\begin{aligned}
+cov(X,Y) &= E\Big[(X - E[X])(Y- E[Y])\Big] \\
+&= E\Big[XY - XE[Y] - YE[X] + E[Y]E[X]\Big] \\
+&= E[XY] - E[XE[Y]] - E[YE[X]] + E[E[Y]E[X]] \\
+&= E[XY] - E[Y]E[X] - E[X]E[Y] + E[Y]E[X]E[1] \qquad \text{since E[X] and E[Y] are just constants} \\
+&= E[XY] - E[X]E[Y]
+\end{aligned}
+$$
+
+### c
+
+$$
+\begin{aligned}
+E[Y|X = x] &= \int y p(y| X = x)dy \\
+&= \int y\frac{p(y,x)}{p(x)}dy \\
+&= \int \int y\frac{p(y, x, z)}{p(x)} dzdy \qquad \text{reverse marginalization} \\
+&= \int \int y\frac{p(y | x, z)p(x,z)}{p(x)}dzdy \qquad \text{bayes rule} \\
+&= \int \frac{p(x,z)}{p(x)} \bigg[\int yp(y|x,z)dy\bigg]dz \qquad \text{separating terms} \\
+&= \int p(z | x) E[Y | X = x, Z = z] dz \\ 
+&= E\Big[E[Y | X, Z] \ \Big| \  X = x\Big] 
+\end{aligned}
+$$
+
+The transition between the second to last and the last step relies on the fact that since we are conditioning on $X = x$, E[Y|X,Z] is just a function of Z, meaning that the outer expectation is over $p(z | x)$.
+
+
+### d
+
+$$
+\begin{aligned}
+E[h(X,Y)] &= \int\int h(x, y)p(x, y)dx dy \\
+&= \int\int h(x,y)p(y | x)p(x)dxdy \qquad \text{bayes rule} \\
+&= \int p(x)\bigg[\int h(x, y)p(y|x)dy \bigg]dx \qquad \text{rearranging terms} \\
+&= \int p(x)E[h(x,y) | X = x] \qquad \text{since we condition on x, E[h(x,y)|x] is over p(y|x)} \\
+&= E\bigg[E[h(X, Y) | X = x]\bigg] \qquad \text{this outer expectation is just over p(x)}
+\end{aligned}
+$$
+
+
+### e
+
+$$
+\begin{aligned}
+Var(Y) &= E[Y^2] - E[Y]^2 \\
+&= E\Big[E[Y^2 | X]\Big] - E[Y]^2 \\
+&= E\Big[Var(Y|X) + E[Y|X]^2\Big] - E\Big[E[Y|X]\Big]^2 \\
+&= E[Var(Y|X)] + E\Big[E[Y|X]^2\Big] - E\Big[E[Y|X]\Big]^2 \\
+&= E[Var(Y|X)] + Var(E[Y|X]) \qquad \text{defintion of variance}
+\end{aligned}
+$$
