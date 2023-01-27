@@ -112,7 +112,7 @@ $$
 
 Importantly these are sequences of numbers and not random variables so we can indeed say that since each term individually converges to zero, then so does their sum. We are not using what we were trying to prove.
 
-But now what we have that is for any $\varepsilon > 0$,
+But now what we have is that for any $\varepsilon > 0$,
 
 $$
 \lim_{n\to\infty} P\bigg(\Big|(X_{(n)} + Y_{(n)}) - (c + d)\Big| \ge \varepsilon\bigg) = 0
