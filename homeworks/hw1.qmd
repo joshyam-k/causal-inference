@@ -121,6 +121,26 @@ which is exactly what it means for $X_{(n)} + Y_{(n)}\xrightarrow{p}c + d$
 
 ## 3
 
+We simply apply Chebyshev's inequality to $X_{(n)}$, choosing any $\varepsilon$, to get
+
+$$
+P\bigg(\Big|X_{(n)} - E[X_{(n)}]\Big| \ge \varepsilon\bigg) \le \frac{\sqrt{var(X_{(n)})}}{\varepsilon^2}
+$$
+
+And since we know that $var(X_{(n)})\rightarrow 0$, then by the continuous mapping theorem we know that 
+
+$$
+\frac{\sqrt{var(X_{(n)})}}{\varepsilon^2} \rightarrow \frac{\sqrt{(0)}}{\varepsilon^2} = 0
+$$
+
+Of course probabilities are bounded below by zero, so we get that the probability expression is squeezed towards zero as $n$ increases. And since we also know that $E[X_{(n)}] \rightarrow c$, then when we take the limit of the above expression we get
+
+$$
+\lim_{n\to\infty} P\bigg(\Big|X_{(n)} - c]\Big| \ge \varepsilon\bigg)  = 0
+$$
+
+which is exactly what it means for $X_{(n)}\xrightarrow{p}c$
+
 ## 4
 
 We know that $\sqrt{n}(\hat{\theta} - \theta) \xrightarrow{d} N(0, \sigma^2)$ and $\hat{\sigma} \xrightarrow{p}\sigma$ and we can write
