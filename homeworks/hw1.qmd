@@ -48,8 +48,7 @@ E[Y|X = x] &= \int y p(y| X = x)dy \\
 \end{aligned}
 $$
 
-The transition between the second to last and the last step relies on the fact that since we are conditioning on $X = x$, E[Y|X,Z] is just a function of Z, meaning that the outer expectation is over $p(z | x)$.
-
+The transition between the second to last and the last step relies on the fact that since we are conditioning on $X = x$, E\[Y\|X,Z\] is just a function of Z, meaning that the outer expectation is over $p(z | x)$.
 
 ### d
 
@@ -63,7 +62,6 @@ E[h(X,Y)] &= \int\int h(x, y)p(x, y)dx dy \\
 \end{aligned}
 $$
 
-
 ### e
 
 $$
@@ -76,22 +74,52 @@ Var(Y) &= E[Y^2] - E[Y]^2 \\
 \end{aligned}
 $$
 
-
 ## 2
 
 Prove each of the following statements. In each, let $X_{(n)}$ and $Y_{(n)}$ be sequences of random variables, and let c and d be constants.
 
 ### a
 
-If $X_{(n)} \rightarrow c$ and $Y_{n} \rightarrow d$ both in probability then
+Choose some $\varepsilon > 0$. We can write.
 
 $$
-
+P\bigg(\Big|(X_{(n)} + Y_{(n)}) - (c + d)\Big| \ge \varepsilon\bigg) = P\bigg(\Big|(X_{(n)} -c) + (Y_{(n)} - d)\Big| \ge \varepsilon\bigg)
 $$
 
+But if the event $\Big|(X_{(n)} -c) + (Y_{(n)} - d)\Big| \ge \varepsilon$ happened then the event
+
+-   "$|X_{(n)} - c| \ge \varepsilon/2$ or $|Y_{(n)} - d| \ge \varepsilon/2$" necessarily happened as well
+
+But because the first event happening means necessarily that the second happened, then we can say that the first event is a subset of the second event. Of course if $A \subseteq B$ then $P(A) \le P(B)$ so we can say that
+
+$$
+P\bigg(\Big|(X_{(n)} + Y_{(n)}) - (c + d)\Big| \ge \varepsilon\bigg) \le P\bigg(\Big|X_{(n)} - c\Big| \ge \varepsilon/2 \ \bigcup \ \Big|Y_{(n)} - d\Big| \ge \varepsilon/2\bigg)
+$$ 
+We also know that $P(A \cup B) \le P(A) + P(B)$ so
+
+$$
+\begin{aligned}
+P\bigg(\Big|(X_{(n)} + Y_{(n)}) - (c + d)\Big| \ge \varepsilon\bigg) &\le P\bigg(\Big|X_{(n)} - c\Big| \ge \varepsilon/2 \ \bigcup \ \Big|Y_{(n)} - d\Big| \ge \varepsilon/2\bigg) \\
+&\le P\bigg(\Big|X_{(n)} - c\Big| \ge \varepsilon/2 \bigg) + P\bigg(\Big|Y_{(n)} - d\Big| \ge \varepsilon/2 \bigg)
+\end{aligned}
+$$
+
+But since we know that $X_{(n)}\xrightarrow{p}c$ and $Y_{(n)}\xrightarrow{p}d$ then we know that 
+
+$$
+P\bigg(\Big|X_{(n)} - c\Big| \ge \varepsilon/2 \bigg) + P\bigg(\Big|Y_{(n)} - d\Big| \ge \varepsilon/2 \bigg) \rightarrow 0\qquad \text{as }n\to\infty
+$$
+
+Importantly these are sequences of numbers and not random variables so we can indeed say that since each term individually converges to zero, then so does their sum. We are not using what we were trying to prove.
+
+But now what we have that is for any $\varepsilon > 0$,
+
+$$
+\lim_{n\to\infty} P\bigg(\Big|(X_{(n)} + Y_{(n)}) - (c + d)\Big| \ge \varepsilon\bigg) = 0
+$$
+which is exactly what it means for $X_{(n)} + Y_{(n)}\xrightarrow{p}c + d$
 
 ## 3
-
 
 ## 4
 
@@ -129,7 +157,7 @@ $$
 \end{aligned}
 $$
 
-so we have that 
+so we have that
 
 $$
 \lim_{n\to\infty}P\bigg(\hat{\theta} - z_{1-\alpha /2}\frac{\hat{\sigma}}{\sqrt{n}} \le \theta \le \hat{\theta} + z_{1-\alpha /2}\frac{\hat{\sigma}}{\sqrt{n}}\bigg) = 1 - \alpha
@@ -139,7 +167,7 @@ as desired.
 
 ## 5
 
-### a 
+### a
 
 Well in OLS we choose $\beta$ such that $\mathbf{X}^T(\mathbf{Y} - \mathbf{X}\beta) = 0$ ($\hat{\beta}_{OLS}$ solves this equation).
 
