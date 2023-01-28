@@ -124,19 +124,19 @@ which is exactly what it means for $X_{(n)} + Y_{(n)}\xrightarrow{p}c + d$
 We simply apply Chebyshev's inequality to $X_{(n)}$, choosing any $\varepsilon$, to get
 
 $$
-P\bigg(\Big|X_{(n)} - E[X_{(n)}]\Big| \ge \varepsilon\bigg) \le \frac{\sqrt{var(X_{(n)})}}{\varepsilon^2}
+P\bigg(\Big|X_{(n)} - E[X_{(n)}]\Big| \ge \varepsilon\bigg) \le \frac{var(X_{(n)})}{\varepsilon^2}
 $$
 
-And since we know that $var(X_{(n)})\rightarrow 0$, then by the continuous mapping theorem we know that 
+And since we know that $var(X_{(n)})\rightarrow 0$, then we know that 
 
 $$
-\frac{\sqrt{var(X_{(n)})}}{\varepsilon^2} \rightarrow \frac{\sqrt{(0)}}{\varepsilon^2} = 0
+\frac{1}{\varepsilon^2}\cdot var(X_{(n)}) \rightarrow \frac{1}{\varepsilon^2}\cdot 0 = 0
 $$
 
 Of course probabilities are bounded below by zero, so we get that the probability expression is squeezed towards zero as $n$ increases. And since we also know that $E[X_{(n)}] \rightarrow c$, then when we take the limit of the above expression we get
 
 $$
-\lim_{n\to\infty} P\bigg(\Big|X_{(n)} - c]\Big| \ge \varepsilon\bigg)  = 0
+\lim_{n\to\infty} P\bigg(\Big|X_{(n)} - c\Big| \ge \varepsilon\bigg)  = 0
 $$
 
 which is exactly what it means for $X_{(n)}\xrightarrow{p}c$
@@ -217,3 +217,72 @@ $$
 so of course $\frac{1}{n}\sum e_i = 0$ as well.
 
 ### b
+
+## 6
+
+```{r, message=F, warning=F}
+library(tidyverse)
+library(patchwork)
+
+set.seed(1)
+n <- 1000
+x <- rnorm(n)
+epsilon <- (x^2 + 1) * (rchisq(n, df=1)-1)
+y <- 1 + x + epsilon
+
+df <- tibble(
+  x = x,
+  y = y,
+  eps = epsilon
+)
+```
+
+
+### a
+
+```{r}
+mod <- lm(y ~ x, df)
+
+df <- df %>% 
+  mutate(
+    prediction = predict(mod, newx = x),
+    residual = y - prediction
+    ) 
+```
+
+```{r, warning = F, message = F}
+## linearity
+p1 <- df %>% 
+  ggplot(aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F) +
+  theme_bw()
+
+p2 <- df %>% 
+  ggplot(aes(x = prediction, y = residual)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "orange", linetype = 2, linewidth = 1) +
+  theme_bw()
+
+p3 <- df %>% 
+  ggplot(aes(x = residual)) +
+  geom_histogram(fill = "midnightblue", color = "white") +
+  theme_bw()
+  
+
+(p1 + p2) / p3
+```
+
+
+### b
+
+Linearity
+
+$$
+\begin{aligned}
+E[\varepsilon | X ] &= E[(X^2 + 1)\cdot(\chi^2_{1} - 1) | X ] \\
+&= E[(X^2\cdot\chi^2_{1} + \chi^2_{1} - X^2 - 1 | X ] \\
+&= E[X^2 \cdot \chi^2_{1} | X ] + E[\chi_1^2 | X ] - E[X^2 | X ] - E[1 | X ]  \\
+&= E[]
+\end{aligned}
+$$
