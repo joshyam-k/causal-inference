@@ -407,10 +407,37 @@ for (i in 1:1000){
 }
 ```
 
+looks unbiased and the distributions have lower variance as n increases
 
 ```{r, message=F, warning=F}
 library(here)
 coef_df <- read_csv(here("data", "hw1_coef_df.csv"))
 ci_df <- read_csv(here("data", "hw1_ci_df.csv"))
+
+means <- coef_df %>% 
+  group_by(n) %>% 
+  summarise(mean = mean(beta))
+
+
+coef_df %>% 
+  ggplot(aes(x = beta, fill = factor(n))) +
+  geom_density(color = NA, alpha = 0.5) +
+  geom_vline(data = means, aes(xintercept = mean, color = factor(n))) +
+  theme_bw() +
+  labs(
+    fill = "n",
+    x = "OLS coefficient for X"
+  )
+```
+
+```{r}
+# not sure what to do here
+ci_df %>% 
+  left_join(coef_df, by = c("n", "iter")) %>% 
+  rowwise() %>% 
+  mutate(contains = between(beta, lower_ci, upper_ci)) %>% 
+  ungroup() %>% 
+  group_by(n, method) %>% 
+  summarise(coverage = mean(contains))
 ```
 
