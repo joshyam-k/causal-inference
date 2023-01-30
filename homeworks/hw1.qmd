@@ -223,6 +223,7 @@ so of course $\frac{1}{n}\sum e_i = 0$ as well.
 ```{r, message=F, warning=F}
 library(tidyverse)
 library(patchwork)
+library(moderndive)
 
 set.seed(1)
 n <- 1000
@@ -243,7 +244,7 @@ df <- tibble(
 ```{r}
 mod <- lm(y ~ x, df)
 
-df <- df %>% 
+df_preds <- df %>% 
   mutate(
     prediction = predict(mod, newx = x),
     residual = y - prediction
@@ -252,19 +253,19 @@ df <- df %>%
 
 ```{r, warning = F, message = F}
 ## linearity
-p1 <- df %>% 
+p1 <- df_preds %>% 
   ggplot(aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", se = F) +
   theme_bw()
 
-p2 <- df %>% 
+p2 <- df_preds %>% 
   ggplot(aes(x = prediction, y = residual)) +
   geom_point() +
   geom_hline(yintercept = 0, color = "orange", linetype = 2, linewidth = 1) +
   theme_bw()
 
-p3 <- df %>% 
+p3 <- df_preds %>% 
   ggplot(aes(x = residual)) +
   geom_histogram(fill = "midnightblue", color = "white") +
   theme_bw()
@@ -281,8 +282,64 @@ Linearity
 $$
 \begin{aligned}
 E[\varepsilon | X ] &= E[(X^2 + 1)\cdot(\chi^2_{1} - 1) | X ] \\
-&= E[(X^2\cdot\chi^2_{1} + \chi^2_{1} - X^2 - 1 | X ] \\
-&= E[X^2 \cdot \chi^2_{1} | X ] + E[\chi_1^2 | X ] - E[X^2 | X ] - E[1 | X ]  \\
-&= E[]
+&= E[(X^2\cdot\chi^2_{1} + \chi^2_{1} - X^2 - 1 | X ] 
 \end{aligned}
 $$
+
+
+
+### c
+
+#### i
+
+```{r}
+get_regression_table(mod) %>% 
+  filter(term == "x") %>% 
+  select(term, lower_ci, upper_ci) 
+```
+    
+#### ii
+
+```{r}
+set.seed(100)
+df_list <- list()
+for(i in 1:1000){
+  data <- df %>% 
+    slice_sample(n = 1000, replace = T)
+  
+  df_list[[i]] <- data
+}
+
+get_coef <- function(data) {
+  mod <- lm(y ~ x, data)
+  return(coef(summary(mod))[2,1])
+}
+
+boot_coefs <- df_list %>% 
+  map_dbl(.f = get_coef)
+
+quantile(boot_coefs, c(0.025, 0.975))
+```
+
+
+#### iii
+
+```{r}
+coef(summary(mod))[2, 1] + c(-1, 1)*qnorm(0.975)*sd(boot_coefs)
+```
+
+#### iv
+
+```{r}
+library(sandwich)
+
+varBeta <- vcovHC(mod, type="HC")
+se <- sqrt(diag(varBeta))[2]
+
+coef(summary(mod))[2, 1] + c(-1, 1)*qnorm(0.975)*se
+```
+
+
+
+### d
+
