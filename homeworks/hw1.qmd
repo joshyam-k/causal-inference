@@ -94,8 +94,7 @@ But because the first event happening means necessarily that the second happened
 
 $$
 P\bigg(\Big|(X_{(n)} + Y_{(n)}) - (c + d)\Big| \ge \varepsilon\bigg) \le P\bigg(\Big|X_{(n)} - c\Big| \ge \varepsilon/2 \ \bigcup \ \Big|Y_{(n)} - d\Big| \ge \varepsilon/2\bigg)
-$$ 
-We also know that $P(A \cup B) \le P(A) + P(B)$ so
+$$ We also know that $P(A \cup B) \le P(A) + P(B)$ so
 
 $$
 \begin{aligned}
@@ -104,7 +103,7 @@ P\bigg(\Big|(X_{(n)} + Y_{(n)}) - (c + d)\Big| \ge \varepsilon\bigg) &\le P\bigg
 \end{aligned}
 $$
 
-But since we know that $X_{(n)}\xrightarrow{p}c$ and $Y_{(n)}\xrightarrow{p}d$ then we know that 
+But since we know that $X_{(n)}\xrightarrow{p}c$ and $Y_{(n)}\xrightarrow{p}d$ then we know that
 
 $$
 P\bigg(\Big|X_{(n)} - c\Big| \ge \varepsilon/2 \bigg) + P\bigg(\Big|Y_{(n)} - d\Big| \ge \varepsilon/2 \bigg) \rightarrow 0\qquad \text{as }n\to\infty
@@ -116,8 +115,7 @@ But now what we have is that for any $\varepsilon > 0$,
 
 $$
 \lim_{n\to\infty} P\bigg(\Big|(X_{(n)} + Y_{(n)}) - (c + d)\Big| \ge \varepsilon\bigg) = 0
-$$
-which is exactly what it means for $X_{(n)} + Y_{(n)}\xrightarrow{p}c + d$
+$$ which is exactly what it means for $X_{(n)} + Y_{(n)}\xrightarrow{p}c + d$
 
 ## 3
 
@@ -127,7 +125,7 @@ $$
 P\bigg(\Big|X_{(n)} - E[X_{(n)}]\Big| \ge \varepsilon\bigg) \le \frac{var(X_{(n)})}{\varepsilon^2}
 $$
 
-And since we know that $var(X_{(n)})\rightarrow 0$, then we know that 
+And since we know that $var(X_{(n)})\rightarrow 0$, then we know that
 
 $$
 \frac{1}{\varepsilon^2}\cdot var(X_{(n)}) \rightarrow \frac{1}{\varepsilon^2}\cdot 0 = 0
@@ -225,23 +223,24 @@ library(tidyverse)
 library(patchwork)
 library(moderndive)
 
-set.seed(1)
-n <- 1000
-x <- rnorm(n)
-epsilon <- (x^2 + 1) * (rchisq(n, df=1)-1)
-y <- 1 + x + epsilon
+dgp <- function(n) {
+  x <- rnorm(n)
+  epsilon <- (x^2 + 1) * (rchisq(n, df=1)-1)
+  y <- 1 + x + epsilon
 
-df <- tibble(
-  x = x,
-  y = y,
-  eps = epsilon
-)
+  df <- tibble(
+    y = y,
+    x = x
+  )  
+}
+
 ```
-
 
 ### a
 
 ```{r}
+set.seed(1)
+df <- dgp(1000)
 mod <- lm(y ~ x, df)
 
 df_preds <- df %>% 
@@ -274,7 +273,6 @@ p3 <- df_preds %>%
 (p1 + p2) / p3
 ```
 
-
 ### b
 
 Linearity
@@ -286,8 +284,6 @@ E[\varepsilon | X ] &= E[(X^2 + 1)\cdot(\chi^2_{1} - 1) | X ] \\
 \end{aligned}
 $$
 
-
-
 ### c
 
 #### i
@@ -297,7 +293,7 @@ get_regression_table(mod) %>%
   filter(term == "x") %>% 
   select(term, lower_ci, upper_ci) 
 ```
-    
+
 #### ii
 
 ```{r}
@@ -321,7 +317,6 @@ boot_coefs <- df_list %>%
 quantile(boot_coefs, c(0.025, 0.975))
 ```
 
-
 #### iii
 
 ```{r}
@@ -339,7 +334,83 @@ se <- sqrt(diag(varBeta))[2]
 coef(summary(mod))[2, 1] + c(-1, 1)*qnorm(0.975)*se
 ```
 
-
-
 ### d
+
+
+```{r, eval = F}
+set.seed(4)
+
+df_list <- list()
+
+for(i in 1:1000) {
+  df_list[[i]] <- list(
+    df_10 = dgp(10),
+    df_100 = dgp(100),
+    df_1000 = dgp(1000)
+  )
+}
+
+getter <- function(df){
+  model <- lm(y ~ x, df)
+  beta <- coef(summary(model))[2]
+  trad_ci <- get_regression_table(model) %>% 
+    filter(term == "x") %>% 
+    select(lower_ci, upper_ci) %>% 
+    mutate(method = "trad")
+  
+  varBeta <- vcovHC(model, type="HC")
+  se <- sqrt(diag(varBeta))[2]
+  endpts <- coef(summary(model))[2, 1] + c(-1, 1)*qnorm(0.975)*se
+  robust_ci <- tibble(
+    lower_ci = endpts[1],
+    upper_ci = endpts[2],
+    method = "robust"
+  )
+  
+  all_ci <- rbind(trad_ci, robust_ci)
+  return(list(beta, all_ci))
+}
+
+res_list <- df_list %>% 
+  map(.f = ~map(.x, .f = getter))
+
+coef_df <- data.frame()
+ci_df <- data.frame()
+
+for (i in 1:1000){
+  
+  coef_10 <- res_list[[i]]$df_10[[1]]
+  coef_100 <- res_list[[i]]$df_100[[1]]
+  coef_1000 <- res_list[[i]]$df_1000[[1]]
+  
+  ci_10 <- res_list[[i]]$df_10[[2]] %>% 
+    mutate(n = 10, iter = i) 
+    
+  
+  ci_100 <- res_list[[i]]$df_100[[2]] %>% 
+    mutate(n = 100, iter = i)
+  
+  ci_1000 <- res_list[[i]]$df_1000[[2]] %>% 
+    mutate(n = 1000, iter = i)
+  
+  res_ci <- rbind(ci_10, ci_100, ci_1000)
+
+  res_coef <- tibble(
+    n = c(10, 100, 1000),
+    beta = c(coef_10, coef_100, coef_1000),
+    iter = rep(i, 3)
+  )
+  
+  ci_df <- rbind(ci_df, res_ci)
+  coef_df <- rbind(coef_df, res_coef)
+  
+}
+```
+
+
+```{r, message=F, warning=F}
+library(here)
+coef_df <- read_csv(here("data", "hw1_coef_df.csv"))
+ci_df <- read_csv(here("data", "hw1_ci_df.csv"))
+```
 
