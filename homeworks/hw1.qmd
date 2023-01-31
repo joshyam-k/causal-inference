@@ -270,19 +270,42 @@ p3 <- df_preds %>%
   theme_bw()
   
 
-(p1 + p2) / p3
+p2 / p3
 ```
 
 ### b
 
-Linearity
+Linearity holds as shown below
+
 
 $$
 \begin{aligned}
-E[\varepsilon | X ] &= E[(X^2 + 1)\cdot(\chi^2_{1} - 1) | X ] \\
-&= E[(X^2\cdot\chi^2_{1} + \chi^2_{1} - X^2 - 1 | X ] 
+E[\varepsilon | X ] &= E[(X^2 + 1)\cdot(\chi^2_{1} - 1) \ | \ X ] \\
+&= E[(X^2\cdot\chi^2_{1} + \chi^2_{1} - X^2 - 1 \ | \ X ] \\
+&= E[X^2\cdot\chi^2_1 \ | \ X] + E[\chi^2_1 \ | \ X] - E[X^2 \ | \ X] - E[1 \ | \ X] \\
+&= X^2E[\chi^2_1 \ | \ X] + E[\chi^2_1 \ | \ X] - X^2E[1 \ | \ X] - E[1 \ | \ X] \\
+&= X^2\cdot1 + 1 - X^2\cdot 1 - 1 \\
+&= 0
 \end{aligned}
 $$
+
+
+Equal Variance does not hold as $\text{var}(\varepsilon \ | \ X = x)$ varies with $x$ as is shown below
+
+
+$$
+\begin{aligned}
+\text{var}(\varepsilon \ | \ X = x) &= E[\varepsilon^2 \ | \ X = x] \\
+&= E\Big[(X^2 + 1)^2(\chi^2_1 - 1)^2 \ | \ X = x\Big] \\
+&= (x^2 + 1)^2E\Big[(\chi^2_1)^2 - 2\chi^2_1 + 1 \ | \ X = x\Big] \\
+&= (x^2 + 1)^2\bigg(E\Big[(\chi^2_1)^2 \ | \ X = x\Big] - 2E[\chi^2_1 \ | \ X = x] + 1\bigg) \\
+&= (x^2 + 1)^2\bigg(E\Big[(\chi^2_1)^2 \ | \ X = x\Big] - 1\bigg) \\
+&= (x^2 + 1)^2\bigg(\text{var}(\chi^2_1 \ | \ X = x) + \Big(E[\chi^2_1 \ | \ X = x]\Big)^2 - 1\bigg) \\
+&= (x^2 + 1)^2(2 + 1^2 - 1) \\
+&= 2\cdot(x^2 + 1)^2
+\end{aligned} 
+$$
+
 
 ### c
 
@@ -335,7 +358,6 @@ coef(summary(mod))[2, 1] + c(-1, 1)*qnorm(0.975)*se
 ```
 
 ### d
-
 
 ```{r, eval = F}
 set.seed(4)
@@ -440,4 +462,3 @@ ci_df %>%
   group_by(n, method) %>% 
   summarise(coverage = mean(contains))
 ```
-
