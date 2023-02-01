@@ -115,7 +115,48 @@ But now what we have is that for any $\varepsilon > 0$,
 
 $$
 \lim_{n\to\infty} P\bigg(\Big|(X_{(n)} + Y_{(n)}) - (c + d)\Big| \ge \varepsilon\bigg) = 0
-$$ which is exactly what it means for $X_{(n)} + Y_{(n)}\xrightarrow{p}c + d$
+$$ 
+
+which is exactly what it means for $X_{(n)} + Y_{(n)}\xrightarrow{p}c + d$
+
+### b
+
+### c
+
+If $X_{(n)}\xrightarrow{p}c$ then we also know that $\frac{X_{(n)}}{c}\xrightarrow{p}1$
+
+Next let $\varepsilon > 0$ be given and take
+
+$$
+\begin{aligned}
+\bigg|\frac{c}{X_{(n)}} - 1\bigg| \ge \varepsilon &\iff -\varepsilon \le \frac{c}{X_{(n)}} - 1 \le \varepsilon \\
+&= 1 - \varepsilon \le \frac{c}{X_{(n)}} \le 1 + \varepsilon \\
+&= \frac{c}{1 + \varepsilon} \le X_{(n)} \le \frac{c}{1 - \varepsilon} \\
+&= \frac{c}{1 + \varepsilon} - c \le X_{(n)} - c \le \frac{c}{1 - \varepsilon} - c \\
+&= \frac{c - c(1 + \varepsilon)}{1 + \varepsilon} \le X_{(n)} - c \le \frac{c - c(1-\varepsilon)}{1 - \varepsilon} \\
+&= -\frac{c\varepsilon}{1 + \varepsilon} \le X_{(n)} - c \le \frac{c\varepsilon}{1 - \varepsilon}
+\end{aligned}
+$$
+
+we're almost there, but from here we can not that since $\varepsilon > 0$ then we have that $c\varepsilon/(1+ \varepsilon) < c\varepsilon/(1- \varepsilon)$ which we can leverage to say that
+
+$$
+-\frac{c\varepsilon}{1 + \varepsilon} \le X_{(n)} - c \le \frac{c\varepsilon}{1 - \varepsilon} \implies -\frac{c\varepsilon}{1 -\varepsilon} \le X_{(n)} - c \le \frac{c\varepsilon}{1 - \varepsilon} \implies |X_{(n)} - c| \le \frac{c\varepsilon}{1 - \varepsilon}
+$$
+
+Essentially the logic is that if we know that $-a \le X_{(n)} - c$ and $a < b$ then $-b \le X_{(n)} - c$ as well. In any event, we have made our event **larger** and so we can say that this event has a larger probability of occuring. To reiterate, in the first chunk of steps above we had shown a direct bi-conditional, and then in this last step we made our event slightly larger so we can write:
+
+$$
+P\bigg(\bigg|\frac{c}{X_{(n)}} - 1\bigg| \ge \varepsilon\bigg) \le P\bigg(|X_{(n)} - c| \le \frac{c\varepsilon}{1 - \varepsilon}\bigg)
+$$
+
+We are given that $X_{(n)} \xrightarrow{p}c$ and so we certainly know that the right hand term goes to zero as $n\to\infty$. This then tells us that 
+
+$$
+\frac{c}{X_{(n)}} \xrightarrow{p} 1 \iff \frac{1}{X_{(n)}} \xrightarrow{p}\frac{1}{c}
+$$
+
+as desired.
 
 ## 3
 
