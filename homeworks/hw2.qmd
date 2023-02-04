@@ -1,0 +1,11 @@
+---
+title: "hw2"
+format: pdf
+editor: visual
+---
+
+## 1
+
+## 2
+
+## 3
