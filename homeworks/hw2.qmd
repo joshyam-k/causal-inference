@@ -4,9 +4,8 @@ format: pdf
 editor: visual
 ---
 
-```{r, message=F, warning = F}
+```{r, message=F, warning = F, echo=F}
 library(tidyverse)
-
 ```
 
 
@@ -16,7 +15,7 @@ library(tidyverse)
 
 I have some concerns about no interference since no one takes a class in complete isolation and thus students in a given AP Calc class could certainly have an effect on the potential outcomes of the other students in their class. For example, Teddy might befriend Ron who has developed a giant college cheating scheme which would lead to Teddy having a higher college GPA than if he had not take AP Calc with Ron. 
 
-I also definitely have concerns about same versions of the treatment as each AP Calc professor, and thus class, is likely different. For example, one student might have Wenny Lainstein, the greatest teacher of this generation (extra credit pls), and another might have Daniel Zhou who shows up to teach 15 minutes late everyday and forces the class to watch soccer everyday instead of learning Calc.
+I also definitely have concerns about same versions of the treatment as each AP Calc professor, and thus class, is likely different. For example, one student might have Wenny Lainstein, the greatest teacher of this generation (extra credit pls), and another might have Daniel Zhou who shows up to teach 15 minutes late everyday and forces the class to watch soccer everyday instead of learning Calculus.
 
 ### b
 
@@ -78,7 +77,7 @@ In words this means that the expected value for the potential outcome for unit $
 
 ### d
 
-In all of the above cases $(Y_i(1),Y_i(0)) \perp\!\!\!\!\perp$ does indeed imply these conditions, but
+In all of the above cases $(Y_i(1),Y_i(0)) \perp\!\!\!\!\perp$ does indeed imply these conditions, because of the fact that we would be able to drop the conditioning in all cases. That being said, it's possible that the terms just happen to cancel each other out without $(Y_i(1),Y_i(0)) \perp\!\!\!\!\perp$, as we will see in the next portion of this problem.
 
 ### e
 
@@ -129,6 +128,12 @@ tibble(
 
 ```
 
+### g
+
+still to do
+
+### h
+
 
 
 ## 3
@@ -136,9 +141,13 @@ tibble(
 ```{r}
 # helper function to run the simulation in each part
 run_sim <- function(n, .f) {
+  
+  # .f will be the DGP function for each part
   .f = as_mapper(.f)
   res <- data.frame()
   
+  # for 1000 iterations generate data using the dgp
+  # then calculate the satc, satt, and sate and output the results
   for(i in 1:1000) {
     data <- .f(1000)
     satc <- data %>% 
@@ -282,6 +291,23 @@ f_res <- run_sim(1000, dgp_f)
 
 f_res %>% 
   ggplot(aes(x = value, fill = var)) +
-    geom_density()
+  geom_density() +
+  labs(
+    fill = ""
+  )
+```
+
+
+This example works, because a unit receiving the treatment usually means that $X > 0$ which means that $Y_i(1) - Y_i(0)$ will usually be positive and thus the SATT will be centered on a positive value, while a unit not receiving the treatment usually means that $X < 0$ which means $Y_i(1) - Y_i(0)$ will usually be negative and thus the SATC will be centered on a negative value. That being said, because the ATE does not condition on the status of the treatment, we end up with an SATE that is centered on zero. 
+
+This is mostly because I wrote the DGP in such a way that the SATT and SATP will have centers that are equidistant from zero, and as we learned in part e, the ATE an be decomposed into a weighted average of the ATT and ATC. If we visualize the distribution of the probabilities that determine $D$ for a large number of observations we see that it is uniformly distributed on $(-1, 1)$ which explains why the sate then get centered on zero.
+
+```{r}
+tibble(
+  x = runif(10000, -1, 1),
+  p = 0.5 + 0.5*x
+) %>% 
+  ggplot(aes(x = p)) +
+  geom_histogram()
 ```
 
