@@ -4,8 +4,9 @@ format: pdf
 editor: visual
 ---
 
-```{r}
+```{r, message=F, warning = F}
 library(tidyverse)
+
 ```
 
 
@@ -23,13 +24,112 @@ I feel fine about same versions of the treatment in this situation, but I do hav
 
 ### c
 
-Researchers want to know how effective a special new blue pill is 
+Researchers want to know how effective a special new blue pill is at making people better at causal inference. The participants from the study come from various neighborhoods spread across the United States. The researchers redefine the unit of analysis to be the entire neighborhood, to deal with the fact that no interference is probably not satisfied otherwise.
 
 ## 2
 
 ### a
 
 Derive the minimal condition for $\hat{\tau}_{dim}$ to be unbiased for the ATE. What does this condition mean in words?
+
+$$
+E[\hat{\tau}_{\text{dim}}] - \text{ATE} = \bigg(E[Y_i(1) \ | \ D_i = 1] - E[Y_i(1)]\bigg) - \bigg(E[Y_i(0) \ | \ D_i = 0] - E[Y_i(0)]\bigg)
+$$
+
+### b
+
+Derive the minimal condition for $\hat{\tau}_{\text{dim}}$ to be unbiased for the ATT. What does this condition mean in words?
+
+$$
+\begin{aligned}
+E[\hat{\tau}_{\text{dim}}] - \text{ATT} &= \bigg(E[Y_i(1) \ | \ D_1 = 1] - E[Y_i(0) \ | \ D_i = 0]\bigg) - E[Y_i(1) - Y_i(0) \ | \ D_i = 1] \\
+&= \bigg(E[Y_i(1) \ | \ D_1 = 1] - E[Y_i(0) \ | \ D_i = 0]\bigg) - \bigg(E[Y_i(1) \ | \ D_i = 1] - E[Y_i(0) \ | \ D_i = 1]\bigg) \\
+&= E[Y_i(0) \ | \ D_i = 1] - E[Y_i(0) \ | \ D_i = 0]
+\end{aligned}
+$$
+
+So we have unbiasedness when
+
+$$
+E[Y_i(0) \ | \ D_i = 1] - E[Y_i(0) \ | \ D_i = 0]
+$$
+
+In words this means that the expected value of the potential outcome for unit $i$ without treatment is the same regardless of what value of the treatment we condition on.
+
+### c
+
+Derive the minimal condition for  $\hat{\tau}_{\text{dim}}$ to be unbiased for the ATC. What does this condition mean in words?
+
+$$
+\begin{aligned}
+E[\hat{\tau}_{\text{dim}}] - \text{ATC} &= \bigg(E[Y_i(1) \ | \ D_1 = 1] - E[Y_i(0) \ | \ D_i = 0]\bigg) - E[Y_i(1) - Y_i(0) \ | \ D_i = 0] \\
+&= \bigg(E[Y_i(1) \ | \ D_1 = 1] - E[Y_i(0) \ | \ D_i = 0]\bigg) - \bigg(E[Y_i(1) \ | \ D_i = 0] - E[Y_i(0) \ | \ D_i = 0]\bigg) \\
+&= E[Y_i(1) \ | \ D_i = 1] - E[Y_i(1) \ | \ D_i = 0]
+\end{aligned}
+$$
+
+So we have unbiasedness when 
+
+$$
+E[Y_i(1) \ | \ D_i = 1] = E[Y_i(1) \ | \ D_i = 0]
+$$
+
+In words this means that the expected value for the potential outcome for unit $i$ with treatment is the same regardless of what value of the treatment we condition on.
+
+### d
+
+In all of the above cases $(Y_i(1),Y_i(0)) \perp\!\!\!\!\perp$ does indeed imply these conditions, but
+
+### e
+
+We can see that the minimal condition is met here because
+
+$$
+E[Y_i(0) \ | \ D_i = 1] - E[Y_i(0) \ | \ D_i = 0] = 0 - 0 = 0
+$$
+
+Of course $(Y_i(1),Y_i(0)) \perp\!\!\!\!\perp$ does not hold, because both $D$ and $Y_i(0)$ have a dependence on $X$. 
+
+
+### f
+
+We do in fact see that in this DGP $\hat{\tau}_{dim}$ is unbiased for the ATT
+
+```{r}
+dgp_p2 <- function(n) {
+  tibble(
+    x = runif(n, 0, 1),
+    d = rbinom(n, 1, 0.25 + 0.5*x),
+    y_0 = rnorm(n, 0, 2*x^2 + 1),
+    y_1 = rnorm(n, 2, 1)
+  )
+}
+
+dims <- c()
+for(i in 1:1000) {
+  data <- dgp_p2(1000)
+  dim <- data %>% 
+    mutate(y = case_when(
+      d == 1 ~ y_1,
+      d == 0 ~ y_0
+    )) %>% 
+    group_by(d) %>% 
+    summarise(each = mean(y))
+  
+  dims <- c(dims, dim$each[2] - dim$each[1])
+}
+
+tibble(
+  x = dims
+) %>% 
+  ggplot(aes(x = 1, y = dims)) +
+  geom_boxplot()
+
+
+
+```
+
+
 
 ## 3
 
@@ -73,15 +173,11 @@ I hypothesize that the ATT and ATC will be different
 
 ```{r}
 dgp_a <- function(n) {
-  x <- runif(n, -1, 1)
-  d <- rbinom(n , 1, 0.5 + 0.5*x)
-  Y_0 = x + rnorm(n, 0, 1)
-  Y_1 = 1 + 5*x + rnorm(n, 0 , 1) 
   tibble(
-    x = x,
-    d = d,
-    Y_0 = Y_0,
-    Y_1 = Y_1
+    x = runif(n, -1, 1),
+    d = rbinom(n , 1, 0.5 + 0.5*x),
+    Y_0 = x + rnorm(n, 0, 1),
+    Y_1 = 1 + 5*x + rnorm(n, 0 , 1) 
   )
 }
 
@@ -101,15 +197,11 @@ I hypothesize that the ATT and ATC will be different
 
 ```{r}
 dgp_b <- function(n) {
-  x <- runif(n, -1, 1)
-  d <- rbinom(n , 1, 0.5 + 0.5*x)
-  Y_0 = x + rnorm(n, 0, 1)
-  Y_1 = 1 + x + rnorm(n, 0 , 1) 
   tibble(
-    x = x,
-    d = d,
-    Y_0 = Y_0,
-    Y_1 = Y_1
+    x = runif(n, -1, 1),
+    d = rbinom(n , 1, 0.5 + 0.5*x),
+    Y_0 = x + rnorm(n, 0, 1),
+    Y_1 = 1 + x + rnorm(n, 0 , 1) 
   )
 }
 
@@ -130,15 +222,11 @@ I hypothesize that the ATT and ATC will be the same
 
 ```{r}
 dgp_c <- function(n) {
-  x <- runif(n, -1, 1)
-  d <- rbinom(n , 1, 0.5)
-  Y_0 = 1 - x + rnorm(n, 0, 1)
-  Y_1 = 1 + 5*x + rnorm(n, 0 , 1) 
   tibble(
-    x = x,
-    d = d,
-    Y_0 = Y_0,
-    Y_1 = Y_1
+    x = runif(n, -1, 1),
+    d = rbinom(n , 1, 0.5),
+    Y_0 = 1 - x + rnorm(n, 0, 1),
+    Y_1 = 1 + 5*x + rnorm(n, 0 , 1) 
   )
 }
 
@@ -180,8 +268,8 @@ $$
 dgp_f <- function(n) {
   x <- runif(n, -1, 1)
   d <- rbinom(n , 1, 0.5 + 0.5*x)
-  Y_0 = x + rnorm(n, 0, 1)
-  Y_1 = 1 + 2*x + rnorm(n, 0 , 1) 
+  Y_0 = x  + rnorm(n, 0, 1)
+  Y_1 = 2*x + rnorm(n, 0 , 1) 
   tibble(
     x = x,
     d = d,
