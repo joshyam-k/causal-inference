@@ -35,6 +35,14 @@ $$
 E[\hat{\tau}_{\text{dim}}] - \text{ATE} = \bigg(E[Y_i(1) \ | \ D_i = 1] - E[Y_i(1)]\bigg) - \bigg(E[Y_i(0) \ | \ D_i = 0] - E[Y_i(0)]\bigg)
 $$
 
+So we have unbiasedness when 
+
+$$
+\bigg(E[Y_i(1) \ | \ D_i = 1] - E[Y_i(1)]\bigg) = \bigg(E[Y_i(0) \ | \ D_i = 0] - E[Y_i(0)]\bigg)
+$$
+
+In words this means that the selection bias terms are equal. Notice that this is indeed a weaker condition than the condition that $(Y_i(1),Y_i(0)) \perp\!\!\!\!\perp D$. While its true that this minimal condition holds whenever the independence condition holds, it could be the case that this condition holds just because the terms happen to cancel each other out.
+
 ### b
 
 Derive the minimal condition for $\hat{\tau}_{\text{dim}}$ to be unbiased for the ATT. What does this condition mean in words?
@@ -77,7 +85,7 @@ In words this means that the expected value for the potential outcome for unit $
 
 ### d
 
-In all of the above cases $(Y_i(1),Y_i(0)) \perp\!\!\!\!\perp$ does indeed imply these conditions, because of the fact that we would be able to drop the conditioning in all cases. That being said, it's possible that the terms just happen to cancel each other out without $(Y_i(1),Y_i(0)) \perp\!\!\!\!\perp$, as we will see in the next portion of this problem.
+In all of the above cases $(Y_i(1),Y_i(0)) \perp\!\!\!\!\perp D$ does indeed imply these conditions, because of the fact that we would be able to drop the conditioning in all cases. That being said, it's possible that the terms just happen to cancel each other out without $(Y_i(1),Y_i(0)) \perp\!\!\!\!\perp D$, as we will see in the next portion of this problem.
 
 ### e
 
@@ -87,7 +95,7 @@ $$
 E[Y_i(0) \ | \ D_i = 1] - E[Y_i(0) \ | \ D_i = 0] = 0 - 0 = 0
 $$
 
-Of course $(Y_i(1),Y_i(0)) \perp\!\!\!\!\perp$ does not hold, because both $D$ and $Y_i(0)$ have a dependence on $X$. 
+Of course $(Y_i(1),Y_i(0)) \perp\!\!\!\!\perp D$ does not hold, because both $D$ and $Y_i(0)$ have a dependence on $X$. 
 
 
 ### f
@@ -130,10 +138,11 @@ tibble(
 
 ### g
 
-still to do
+I guess it could happen if there was a pre-treatment covariate that was somehow sweeping a wider variety of people into the non-treatment group, and not affecting the treatment group at all. I can't think of a realistic scenario in which this might actually happen though...
 
 ### h
 
+Since I couldn't really think of a very good **plausibly realistic** scenario where we might see something like this, I would have to say that assuming that $\hat{\tau}_{dim}$ will be unbiased when we don't have randomization is probably more often than not, an incorrect assumption. We'd have to know something very specific about the data generating process to actually feel good about making that assumption.
 
 
 ## 3
@@ -270,6 +279,7 @@ E[Y(1) - Y(0)] &= E\Big[E\big[Y(1) - Y(0)  \ | \ D\big]\Big] \\
 \end{aligned}
 $$
 
+In words this means that we can recover the ATE by weighing the ATT and ATC by the assignment mechanism and then adding them together. More technically, we can say that we can expand the ATE by conditioning on the value of the treatment.
 
 ### f
 
