@@ -1,0 +1,10 @@
+---
+title: "hw3"
+format: pdf
+pdf-engine: xelatex
+mainfont: Times
+editor: visual
+---
+
+## 1
+
