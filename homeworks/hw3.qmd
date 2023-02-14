@@ -6,6 +6,13 @@ mainfont: Times
 editor: visual
 ---
 
+```{r, echo=F, message=F, warning=F}
+library(tidyverse)
+library(readstata13)
+library(janitor)
+```
+
+
 ## 1
 
 ```{r}
@@ -48,8 +55,6 @@ There are 10 students per school and 50 schools total, meaning taht there are 50
 
 
 ```{r, message = F, warning = F}
-library(tidyverse)
-
 # empty results df to fill
 res <- tibble(
   complete = rep(0, 1000),
@@ -128,5 +133,24 @@ res %>%
   geom_density(alpha = 0.4, show.legend = F) +
   facet_wrap(~ sampling_mechanism, ncol = 1) +
   theme_minimal()
+```
+
+
+
+## 2
+
+```{r, warning = F, message = F}
+data_raw <- read.dta13("/Users/joshuayamamoto/Downloads/BD-SAN-FINAL.dta")
+
+data <- data_raw %>% 
+  select(r4_any_od_adults, treat_cat_3) %>% 
+  mutate(r4_recode = case_when(
+    r4_any_od_adults == "Yes" ~ 1L,
+    r4_any_od_adults == "No" ~ 0L
+  ))
+
+summary(lm(r4_recode ~ treat_cat_3, data)) %>% coef()
+
+test <- read_dta("/Users/joshuayamamoto/Downloads/BD-SAN-FINAL.dta")
 ```
 
