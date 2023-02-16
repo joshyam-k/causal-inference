@@ -139,18 +139,45 @@ res %>%
 
 ## 2
 
+### a
+
 ```{r, warning = F, message = F}
 data_raw <- read.dta13("/Users/joshuayamamoto/Downloads/BD-SAN-FINAL.dta")
+with_names <- read_dta("/Users/joshuayamamoto/Downloads/BD-SAN-FINAL.dta")
 
 data <- data_raw %>% 
-  select(r4_any_od_adults, treat_cat_3) %>% 
+  filter(eligible == "Eligible") %>% 
+  select(r4_any_od_adults, treat_cat_3, uid) %>% 
   mutate(r4_recode = case_when(
     r4_any_od_adults == "Yes" ~ 1L,
     r4_any_od_adults == "No" ~ 0L
-  ))
+  )) %>% 
+  drop_na() 
 
-summary(lm(r4_recode ~ treat_cat_3, data)) %>% coef()
 
-test <- read_dta("/Users/joshuayamamoto/Downloads/BD-SAN-FINAL.dta")
+
+coef(summary(lm(r4_recode ~ treat_cat_3 , data)))[ -1,1] %>% 
+  as.data.frame() %>% 
+  rename('Estimate' = '.')
+
+
+  
+
+```
+
+
+### b
+
+First, most policies and interventions are conducted at the community level, so this design provides policy-relevant information. Second, behavioral spillovers would likely contaminate an individual-level randomization, and in fact measuring these behavioral spillovers was an important objective of our study
+
+### c
+
+```{r}
+## 1: Cluster randomization of villages to treatment conditions.
+## note: stratify by number of neighborhoods per village (1-2 and 3+)
+
+data_raw %>% 
+  group_by(vid) %>% 
+  count()
 ```
 
