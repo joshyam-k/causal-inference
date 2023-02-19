@@ -12,6 +12,7 @@ library(readstata13)
 library(janitor)
 library(haven)
 library(here)
+library(patchwork)
 ```
 
 
@@ -345,9 +346,10 @@ data_sub <- data_raw %>%
 
 true_dim <- coef(lm(r4_recode ~ treat_cat_3, data_sub))[2]
 
-p_val <- mean(null_dist$dim < true_dim)
+p_val_one_sided <- mean(null_dist$dim < true_dim)
+p_val_two_sided <- mean(null_dist$dim < -abs(true_dim)) + mean(null_dist$dim > abs(true_dim))
 
-null_dist %>% 
+one_sided <- null_dist %>% 
   mutate(filler = ifelse(dim > true_dim, "more", "less")) %>% 
   ggplot(aes(x = dim, fill = filler)) +
   geom_histogram(binwidth = 0.0058, show.legend = F) +
@@ -358,6 +360,51 @@ null_dist %>%
 
 
 
+two_sided <- null_dist %>% 
+  mutate(filler = ifelse(dim < -abs(true_dim) | dim > abs(true_dim), "shade", "no-shade")) %>% 
+  ggplot(aes(x = dim, fill = filler)) +
+  geom_histogram(binwidth = 0.0055, show.legend = F) +
+  geom_vline(xintercept = -abs(true_dim), color = "red", linetype = "dashed", linewidth = 1.2) +
+  geom_vline(xintercept = abs(true_dim), color = "red", linetype = "dashed", linewidth = 1.2) +
+  scale_fill_manual(values = c("#a9ccaa", "#4c5c4d")) +
+  theme_minimal() +
+  annotate(geom = "text", x = -0.11, y = 150, label = "p-value = 0.17", color = "#d11611" )
+```
+
+```{r}
+one_sided / two_sided
+```
+
+### e
+
+### f
+
+```{r}
+grid <- true_dim + seq(from=-4, to=4, length.out=200) 
+
+Null_Dist_Matrix <- NULL
+for(i in 1:1000){
+  d_new <- randomization_scheme()$treat3
+  New_DIM <- data.frame(rep(0, 200))
+  for(v in grid){
+    data_raw %>% 
+      mutate(D_new = d_new) %>% 
+      mutate(
+        Y_0 = r4_recode - D*v,
+        Y_1 = r4_recode + (1-D)*v,
+        Y_new = 
+        )
+    # Create new POs based on null value
+    y0_h0 <- y - d*v
+    y1_h0 <- y + (1-d)*v
+    y_new <- d_new*y1_h0 + (1-d_new)*y0_h0
+    # New DIM
+    fit <- lm(y_new~d_new)
+    dim_new <- fit$coefficients["d_new"]
+    New_DIM <- c(New_DIM, dim_new)
+  } # end of v
+  Null_Dist_Matrix <- rbind(Null_Dist_Matrix, New_DIM)
+} 
 ```
 
 
