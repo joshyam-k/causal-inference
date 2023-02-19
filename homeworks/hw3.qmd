@@ -10,6 +10,7 @@ editor: visual
 library(tidyverse)
 library(readstata13)
 library(janitor)
+library(haven)
 ```
 
 
@@ -147,14 +148,12 @@ with_names <- read_dta("/Users/joshuayamamoto/Downloads/BD-SAN-FINAL.dta")
 
 data <- data_raw %>% 
   filter(eligible == "Eligible") %>% 
-  select(r4_any_od_adults, treat_cat_3, uid) %>% 
+  select(r4_any_od_adults, treat_cat_3) %>% 
   mutate(r4_recode = case_when(
     r4_any_od_adults == "Yes" ~ 1L,
     r4_any_od_adults == "No" ~ 0L
   )) %>% 
   drop_na() 
-
-
 
 coef(summary(lm(r4_recode ~ treat_cat_3 , data)))[ -1,1] %>% 
   as.data.frame() %>% 
@@ -173,11 +172,189 @@ First, most policies and interventions are conducted at the community level, so 
 ### c
 
 ```{r}
-## 1: Cluster randomization of villages to treatment conditions.
-## note: stratify by number of neighborhoods per village (1-2 and 3+)
+set.seed(46)
 
-data_raw %>% 
-  group_by(vid) %>% 
-  count()
+randomization_scheme <- function() {
+  
+  ## 1: Cluster randomization of villages to treatment conditions.
+  ## note: stratify by number of neighborhoods per village (1-2 and 3+)
+
+  ## Control, LPP Only, LPP + Subsidy, Supply only.
+
+  strata_labels <- data_raw %>% 
+    distinct(vid, cid) %>% 
+    count(vid) %>% 
+    mutate(strata = case_when(
+      n < 3 ~ "s1",
+      n >= 3 ~ "s2"
+    )) %>% 
+    select(-n) 
+  
+  s1_villages <- strata_labels[strata_labels$strata == "s1", ]$vid
+  s2_villages <- strata_labels[strata_labels$strata == "s2", ]$vid
+  
+  ## s1 has 50 villages
+  ## s2 has 57 villages
+
+  ## 22 in control, 12 LPP only, 63 in LPP + Subsidy, 10 in Supply Only (following SM from paper)
+  
+  s1_clusters <- sample(
+    c(rep("Control", 11), rep("LPP_Only", 6), rep("LPP+Subsidy", 29), rep("Supply_Only", 4)),
+    size = 50, replace = F
+    )
+
+  s2_clusters <- sample(
+    c(rep("Control", 11), rep("LPP_Only", 6), rep("LPP+Subsidy", 34), rep("Supply_Only", 6)), 
+    size = 57, replace = F
+    )
+  
+  # assign clusters
+  cluster_labels <- tibble(
+    vid = c(s1_villages, s2_villages),
+    treat1 = c(s1_clusters, s2_clusters)
+  )
+
+  data_s1 <- data_raw %>% 
+    left_join(strata_labels, by = "vid") %>% 
+    left_join(cluster_labels, by = "vid")
+  
+  n_cid <- data_s1 %>% 
+    filter(treat1 == "LPP+Subsidy") %>% 
+    distinct(cid) %>% 
+    nrow()
+  
+  # recover how many cid should be given LPP + Subsidy and LPP + Subsidy + Supply
+  n1 <- floor(n_cid/2)
+  n2 <- floor(n_cid/2) + 1
+  
+  stage2_labels <- data_s1 %>% 
+    filter(treat1 == "LPP+Subsidy") %>% 
+    distinct(cid) %>% 
+    mutate(stage2grp = sample(c(rep("LPP+Subsidy", n1), rep("LPP+Subsidy+Supply", n2)), 226)) %>% 
+    group_by(stage2grp) %>% 
+    mutate(intensity = sample(c("High", "Medium", "Low"), 113, replace = T))
+  
+} 
+
+
+
+
+
+## 2. Cluster randomization of neighborhoods in the “LPP + Subsidy” condition into a 2x3 set of subtreatments indicating if they get just the subsidy, or the subsidy + supply, and the level of the intensity of the vouchers.
+
+## first cluster randomize into LPP + Subsidy and LPP + Subsidy + Supply
+
+
+stage2_labels <- data_s1 %>% 
+  filter(treat1 == "LPP+Subsidy") %>% 
+  distinct(cid) %>% 
+  mutate(stage2grp = sample(c(rep("LPP+Subsidy", 113), rep("LPP+Subsidy+Supply", 113)), 226)) %>% 
+  group_by(stage2grp) %>% 
+  mutate(intensity = sample(c("High", "Medium", "Low"), 113, replace = T))
+
+data_s2 <- data_s1 %>% 
+  left_join(stage2_labels, by = "cid") %>% 
+  mutate(treat1 = case_when(
+    is.na(stage2grp) ~ treat1,
+    T ~ stage2grp
+  )) %>% 
+  select(-stage2grp) %>% 
+  mutate(treat2 = case_when(
+    is.na(intensity) ~ treat1,
+    T ~ intensity
+  )) %>% 
+  select(-intensity)
+
+## 3: Randomization of the vouchers for households in the “LPP + Subsidy” conditions, given their intensity assignment.
+## note: by household
+
+# high- 60%
+# medium- 50%
+# low- 40%
+# gotten from the table below 
+# data_raw %>% 
+#   group_by(treat_cat_3) %>% 
+#   summarise(n = n_distinct(hhid))
+
+lottery_labels <- data_s2 %>% 
+  filter(treat2 %in% c("High", "Medium", "Low")) %>% 
+  rowwise() %>% 
+  mutate(lottery = case_when(
+    treat2 == "Low" ~ sample(c("Winner", "Loser"), 1, prob = c(0.4, 0.6)),
+    treat2 == "Medium" ~ sample(c("Winner", "Loser"), 1, prob = c(0.5, 0.5)),
+    treat2 == "High" ~ sample(c("Winner", "Loser"), 1, prob = c(0.6, 0.4))
+  )) %>% 
+  ungroup() %>% 
+  mutate(lottery = paste0(lottery, " (", treat2, ")")) %>% 
+  select(hhid, lottery)
+
+data_s3 <- data_s2 %>% 
+  left_join(lottery_labels, by = "hhid") %>% 
+  mutate(treat3 = case_when(
+    is.na(lottery) ~ treat2,
+    T ~ lottery
+  )) %>% 
+  select(-lottery)
+
+data_s3 %>% 
+  count(treat3)
+  
 ```
+
+## 3
+
+### a
+
+$$
+\begin{aligned}
+-B_n - E_n &= -\bigg(\frac{1}{n_1}\sum_{D_i = 1}f_1(X_i) - \frac{1}{n}\sum_{i=1}^nf_1(X_i)\bigg) + \bigg(\frac{1}{n_0}\sum_{D_i = 0}f_0(X_i) - \frac{1}{n}\sum_{i=1}^nf_0(X_i)\bigg) - \\ &  \qquad \bigg(\frac{1}{n_1}\sum_{D_i = 1}\varepsilon_i(1) - \frac{1}{n}\sum_{i=1}^n\varepsilon_i(1)\bigg) + \bigg(\frac{1}{n_0}\sum_{D_i = 0}\varepsilon_i(0) - \frac{1}{n}\sum_{i=1}^n\varepsilon_i(0)\bigg) \\&= -\frac{1}{n_1}\sum_{D_i = 1}f_1(X_i) + \frac{1}{n_0}\sum_{D_i = 0}f_0(X_i) - \frac{1}{n_1}\sum_{D_i = 1}\varepsilon_i(1) + \frac{1}{n_0}\sum_{D_i = 0}\varepsilon_i(0) + \text{SATE} \\
+&= -\frac{1}{n_1}\sum_{D_i = 1}\big[f_1(X_i) + \varepsilon_i(1)\big] + \frac{1}{n_0}\sum_{D_i = 0}\big[f_0(X_i) + \varepsilon_i(0)\big] + \text{SATE} \\
+&= -\frac{1}{n_1}\sum_{D_i = 1}Y_i(1) + \frac{1}{n_0}\sum_{D_i = 0}Y_i(0) + \text{SATE}
+\end{aligned}
+$$
+
+so now we can say that
+
+$$
+\begin{aligned}
+\hat{\tau}_{dim} - B_n - E_n &= \frac{1}{n_1}\sum_{D_i = 1}Y_i(1) - \frac{1}{n_0}\sum_{D_i = 0}Y_i(0)  -\frac{1}{n_1}\sum_{D_i = 1}Y_i(1) + \frac{1}{n_0}\sum_{D_i = 0}Y_i(0) + \text{SATE} \\
+&= \text{SATE}
+\end{aligned}
+$$
+
+
+### b
+
+First recall that we can express $\hat{\tau}_{ols}$ as follows by regressing $(Y - X^T\hat{\beta}_{ols})$ on $D$. If we simplify the expression down we get the following:
+
+$$
+\begin{aligned}
+\hat{\tau}_{ols} &= \bigg(\frac{1}{n_1}\sum_{D_i = 1}Y_i - \frac{1}{n_0}\sum_{D_i = 1}Y_i\bigg) - \bigg(\frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\beta}_{ols} - \frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{ols}\bigg) \\
+&= \hat{\tau}_{dim} - \bigg(\frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\beta}_{ols} - \frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{ols}\bigg)
+\end{aligned}
+$$
+
+Next we can simplify the term $-\hat{\beta}_{n, ols}$ as follows:
+
+$$
+\begin{aligned}
+-\hat{\beta}_{n, ols} &= -\bigg(\frac{n_1\hat{\tau}_{ols}}{n_1} + \frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\beta}_{ols} - \frac{n\hat{\tau}_{ols}}{n} - \frac{1}{n}\sum_{i=1}^nX_i^T\hat{\beta}_{ols}\bigg) + \bigg(\frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{ols} - \frac{1}{n}\sum_{i=1}^nX_i^T\hat{\beta}_{ols}\bigg) \\
+&= -\bigg(\frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\beta}_{ols}  - \frac{1}{n}\sum_{i=1}^nX_i^T\hat{\beta}_{ols}\bigg) + \bigg(\frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{ols} - \frac{1}{n}\sum_{i=1}^nX_i^T\hat{\beta}_{ols}\bigg) \\
+&= -\frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\beta}_{ols} + \frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{ols} \\
+&= -\bigg(\frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\beta}_{ols} - \frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{ols}\bigg)
+\end{aligned}
+$$
+
+Finally if we take $\hat{\tau}_{dim} - \hat{\beta}_{n, ols}$ along with the first equality that we recovered, we get
+
+$$
+\begin{aligned}
+\hat{\tau}_{dim} - \hat{\beta}_{n, ols} &= \hat{\tau}_{dim} - \bigg(\frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\beta}_{ols} - \frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{ols}\bigg)  \\
+&= \hat{\tau}_{ols} 
+\end{aligned}
+$$
+
+as desired
+
+### c
 
