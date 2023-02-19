@@ -11,6 +11,7 @@ library(tidyverse)
 library(readstata13)
 library(janitor)
 library(haven)
+library(here)
 ```
 
 
@@ -218,88 +219,148 @@ randomization_scheme <- function() {
     left_join(strata_labels, by = "vid") %>% 
     left_join(cluster_labels, by = "vid")
   
+  ## 2. Cluster randomization of neighborhoods in the “LPP + Subsidy” condition into a 2x3 set of subtreatments indicating if they get    just the subsidy, or the subsidy + supply, and the level of the intensity of the vouchers.
+
+  ## first cluster randomize into LPP + Subsidy and LPP + Subsidy + Supply
+  
   n_cid <- data_s1 %>% 
     filter(treat1 == "LPP+Subsidy") %>% 
     distinct(cid) %>% 
     nrow()
   
   # recover how many cid should be given LPP + Subsidy and LPP + Subsidy + Supply
-  n1 <- floor(n_cid/2)
-  n2 <- floor(n_cid/2) + 1
+  if (n_cid %% 2 == 1) {
+    n1 <- floor(n_cid/2)
+    n2 <- floor(n_cid/2) + 1
+  } else {
+    n1 <- n_cid/2
+    n2 <- n_cid/2
+  }
+ 
   
   stage2_labels <- data_s1 %>% 
     filter(treat1 == "LPP+Subsidy") %>% 
     distinct(cid) %>% 
-    mutate(stage2grp = sample(c(rep("LPP+Subsidy", n1), rep("LPP+Subsidy+Supply", n2)), 226)) %>% 
-    group_by(stage2grp) %>% 
-    mutate(intensity = sample(c("High", "Medium", "Low"), 113, replace = T))
+    mutate(stage2grp = sample(c(rep("LPP+Subsidy", n1), rep("LPP+Subsidy+Supply", n2)), n1 + n2)) 
+  
+  p1 <- stage2_labels %>% 
+    filter(stage2grp == "LPP+Subsidy") %>% 
+    mutate(intensity = sample(c("High", "Medium", "Low"), n1, replace = T))
+    
+  
+  p2 <- stage2_labels %>% 
+    filter(stage2grp == "LPP+Subsidy+Supply") %>% 
+    mutate(intensity = sample(c("High", "Medium", "Low"), n2, replace = T))
+  
+  stage2_labels_final <- rbind(p1, p2)
+  
+  data_s2 <- data_s1 %>% 
+    left_join(stage2_labels_final, by = "cid") %>% 
+    mutate(treat1 = case_when(
+      is.na(stage2grp) ~ treat1,
+      T ~ stage2grp
+    )) %>% 
+    select(-stage2grp) %>% 
+    mutate(treat2 = case_when(
+      is.na(intensity) ~ treat1,
+      T ~ intensity
+    )) %>% 
+    select(-intensity)
+  
+  ## 3: Randomization of the vouchers for households in the “LPP + Subsidy” conditions, given their intensity assignment.
+  ## note: by household
+  
+  # high- 60%
+  # medium- 50%
+  # low- 40%
+  # gotten from the table below 
+  # data_raw %>% 
+  #   group_by(treat_cat_3) %>% 
+  #   summarise(n = n_distinct(hhid))
+  
+  s2_1 <- data_s2 %>% 
+    filter(treat2 == "Low") %>% 
+    mutate(lottery = sample(c("Winner", "Loser"), n(), replace = T, prob = c(0.4, 0.6)))
+  
+  s2_2 <- data_s2 %>% 
+    filter(treat2 == "Medium") %>% 
+    mutate(lottery = sample(c("Winner", "Loser"), n(), replace = T, prob = c(0.5, 0.5)))
+  
+  s2_3 <- data_s2 %>% 
+    filter(treat2 == "High") %>% 
+    mutate(lottery = sample(c("Winner", "Loser"), n(), replace = T, prob = c(0.6, 0.4)))
+  
+  lottery_labels <- rbind(s2_1, s2_2, s2_3) %>% 
+    mutate(lottery = paste0(lottery, " (", treat2, ")")) %>% 
+    select(hhid, lottery)
+  
+  data_s3 <- data_s2 %>% 
+    left_join(lottery_labels, by = "hhid") %>% 
+    mutate(treat3 = case_when(
+      is.na(lottery) ~ treat2,
+      T ~ lottery
+    )) %>% 
+    select(-lottery) %>% 
+    mutate(r4_recode = case_when(
+      r4_any_od_adults == "Yes" ~ 1L,
+      r4_any_od_adults == "No" ~ 0L
+    )) %>% 
+    select(hhid, cid, vid, r4_recode, treat3) 
+  
+  return(data_s3)
   
 } 
-
-
-
-
-
-## 2. Cluster randomization of neighborhoods in the “LPP + Subsidy” condition into a 2x3 set of subtreatments indicating if they get just the subsidy, or the subsidy + supply, and the level of the intensity of the vouchers.
-
-## first cluster randomize into LPP + Subsidy and LPP + Subsidy + Supply
-
-
-stage2_labels <- data_s1 %>% 
-  filter(treat1 == "LPP+Subsidy") %>% 
-  distinct(cid) %>% 
-  mutate(stage2grp = sample(c(rep("LPP+Subsidy", 113), rep("LPP+Subsidy+Supply", 113)), 226)) %>% 
-  group_by(stage2grp) %>% 
-  mutate(intensity = sample(c("High", "Medium", "Low"), 113, replace = T))
-
-data_s2 <- data_s1 %>% 
-  left_join(stage2_labels, by = "cid") %>% 
-  mutate(treat1 = case_when(
-    is.na(stage2grp) ~ treat1,
-    T ~ stage2grp
-  )) %>% 
-  select(-stage2grp) %>% 
-  mutate(treat2 = case_when(
-    is.na(intensity) ~ treat1,
-    T ~ intensity
-  )) %>% 
-  select(-intensity)
-
-## 3: Randomization of the vouchers for households in the “LPP + Subsidy” conditions, given their intensity assignment.
-## note: by household
-
-# high- 60%
-# medium- 50%
-# low- 40%
-# gotten from the table below 
-# data_raw %>% 
-#   group_by(treat_cat_3) %>% 
-#   summarise(n = n_distinct(hhid))
-
-lottery_labels <- data_s2 %>% 
-  filter(treat2 %in% c("High", "Medium", "Low")) %>% 
-  rowwise() %>% 
-  mutate(lottery = case_when(
-    treat2 == "Low" ~ sample(c("Winner", "Loser"), 1, prob = c(0.4, 0.6)),
-    treat2 == "Medium" ~ sample(c("Winner", "Loser"), 1, prob = c(0.5, 0.5)),
-    treat2 == "High" ~ sample(c("Winner", "Loser"), 1, prob = c(0.6, 0.4))
-  )) %>% 
-  ungroup() %>% 
-  mutate(lottery = paste0(lottery, " (", treat2, ")")) %>% 
-  select(hhid, lottery)
-
-data_s3 <- data_s2 %>% 
-  left_join(lottery_labels, by = "hhid") %>% 
-  mutate(treat3 = case_when(
-    is.na(lottery) ~ treat2,
-    T ~ lottery
-  )) %>% 
-  select(-lottery)
-
-data_s3 %>% 
-  count(treat3)
-  
 ```
+
+
+
+### d
+
+```{r, eval = F}
+
+null_dist <- data.frame(dim = rep(0, 5000))
+
+for(i in 1:5000) {
+  iter <- randomization_scheme()
+  iter <- iter %>%
+    filter(treat3 == "Winner (Low)" | treat3 == "Control") %>% 
+    drop_na()
+
+  null_dist[i, ] <- coef(lm(r4_recode ~ treat3, iter))[2]
+}
+
+```
+
+```{r}
+
+null_dist <- read_csv(here("data", "hw3_p2_null_dist.csv"))
+
+data_sub <- data_raw %>% 
+  filter(treat_cat_3 == "Winner (Low)" | treat_cat_3 == "Control") %>% 
+   mutate(r4_recode = case_when(
+      r4_any_od_adults == "Yes" ~ 1L,
+      r4_any_od_adults == "No" ~ 0L
+    )) %>% 
+  drop_na()
+
+true_dim <- coef(lm(r4_recode ~ treat_cat_3, data_sub))[2]
+
+p_val <- mean(null_dist$dim < true_dim)
+
+null_dist %>% 
+  mutate(filler = ifelse(dim > true_dim, "more", "less")) %>% 
+  ggplot(aes(x = dim, fill = filler)) +
+  geom_histogram(binwidth = 0.0058, show.legend = F) +
+  scale_fill_manual(values = c("#4c5c4d", "#a9ccaa")) +
+  geom_vline(xintercept = true_dim, color = "red", linetype = "dashed", linewidth = 1.2) +
+  theme_minimal() +
+  annotate(geom = "text", x = -0.11, y = 150, label = "p-value = 0.092", color = "#d11611")
+
+
+
+```
+
+
 
 ## 3
 
