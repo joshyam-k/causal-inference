@@ -129,9 +129,17 @@ for (i in 1:1000) {
 
 ```
 
+### c
+
+Each design is indeed unbiased for the ATE. The variances for the bernoulli and complete randomizations are pretty similar, while the cluster randomization has the largest variance and the stratified randomization has the smallest variance.
+
 ```{r}
 res %>% 
-  pivot_longer(cols = everything(), names_to = "sampling_mechanism", values_to = "dim") %>% 
+  pivot_longer(
+    cols = everything(),
+    names_to = "sampling_mechanism",
+    values_to = "dim"
+    ) %>% 
   ggplot(aes(x = dim, fill = sampling_mechanism)) +
   geom_density(alpha = 0.4, show.legend = F) +
   facet_wrap(~ sampling_mechanism, ncol = 1) +
@@ -139,22 +147,35 @@ res %>%
 ```
 
 
+```{r}
+res %>% 
+  summarise(across(everything(), var))
+```
+
+### d
+
+I think it makes sense that cluster randomization would have the highest variance because there are sort of two sources of variability being incorporated: variability within each chosen cluster and the variability between all of the clusters. The data is generated such that there is already variability between the clusters and by re-randomizing in such a way that entire clusters are randomly selected to be treated we essentially enhance that source of variability.
+
+One reason that we would expect the stratified randomization to have the lowest variance is because, unlike in the cluster randomization case, we don't have extra between-cluster variance. I think this is also reason that it has lower variance than the bernoulli and complete randomization cases, as in each re-randomization we ensure that observations from each cluster are included in the treatment. This gives us better balance across clusters and thus avoids more of that unwanted between-cluster variance. 
+
 
 ## 2
 
 ### a
 
-```{r, warning = F, message = F}
-data_raw <- read.dta13("/Users/joshuayamamoto/Downloads/BD-SAN-FINAL.dta")
-with_names <- read_dta("/Users/joshuayamamoto/Downloads/BD-SAN-FINAL.dta")
+Making sure to only perform the analysis on units that are eligible to receive the subsidy, we simply regress our response variable on the treatment category column.
 
-data <- data_raw %>% 
-  filter(eligible == "Eligible") %>% 
-  select(r4_any_od_adults, treat_cat_3) %>% 
+```{r, warning = F, message = F}
+data_raw <- read.dta13("/Users/joshuayamamoto/Downloads/BD-SAN-FINAL.dta") %>% 
   mutate(r4_recode = case_when(
     r4_any_od_adults == "Yes" ~ 1L,
     r4_any_od_adults == "No" ~ 0L
-  )) %>% 
+  )) 
+  
+
+data <- data_raw %>% 
+  filter(eligible == "Eligible") %>% 
+  select(r4_recode, treat_cat_3) %>% 
   drop_na() 
 
 coef(summary(lm(r4_recode ~ treat_cat_3 , data)))[ -1,1] %>% 
@@ -169,13 +190,11 @@ coef(summary(lm(r4_recode ~ treat_cat_3 , data)))[ -1,1] %>%
 
 ### b
 
-First, most policies and interventions are conducted at the community level, so this design provides policy-relevant information. Second, behavioral spillovers would likely contaminate an individual-level randomization, and in fact measuring these behavioral spillovers was an important objective of our study
+I think that the main reason has to do with the fact that it would spark controversy and issues within clusters if some individuals were afforded better treatments than others. Furthermore there would likely be a lot of spillover if the treatment was individually assigned since friends and family would probably let each other benefit from their treatment. 
 
 ### c
 
 ```{r}
-set.seed(46)
-
 randomization_scheme <- function() {
   
   ## 1: Cluster randomization of villages to treatment conditions.
@@ -183,6 +202,7 @@ randomization_scheme <- function() {
 
   ## Control, LPP Only, LPP + Subsidy, Supply only.
 
+  # first figure out the strata that each village belongs to
   strata_labels <- data_raw %>% 
     distinct(vid, cid) %>% 
     count(vid) %>% 
@@ -192,44 +212,64 @@ randomization_scheme <- function() {
     )) %>% 
     select(-n) 
   
+  # extract strata labels for each village
   s1_villages <- strata_labels[strata_labels$strata == "s1", ]$vid
   s2_villages <- strata_labels[strata_labels$strata == "s2", ]$vid
   
   ## s1 has 50 villages
   ## s2 has 57 villages
 
-  ## 22 in control, 12 LPP only, 63 in LPP + Subsidy, 10 in Supply Only (following SM from paper)
+  ## 22 in control, 12 LPP only, 63 in LPP + Subsidy, 10 in Supply Only
+  ## (following SM from paper)
+  ## they overweight the LPP + Subsidy group since it will be further
+  ## partitioned in the next stage 
   
+  # randomly assign the first level of treatment conditions to entire villages by strata
   s1_clusters <- sample(
-    c(rep("Control", 11), rep("LPP_Only", 6), rep("LPP+Subsidy", 29), rep("Supply_Only", 4)),
+    c(
+      rep("Control", 11), rep("LPP_Only", 6),
+      rep("LPP+Subsidy", 29), rep("Supply_Only", 4)
+      ),
     size = 50, replace = F
     )
 
   s2_clusters <- sample(
-    c(rep("Control", 11), rep("LPP_Only", 6), rep("LPP+Subsidy", 34), rep("Supply_Only", 6)), 
+    c(
+      rep("Control", 11), rep("LPP_Only", 6),
+      rep("LPP+Subsidy", 34), rep("Supply_Only", 6))
+    , 
     size = 57, replace = F
     )
   
-  # assign clusters
+  # create new tibble with the treatment that each village belongs to
   cluster_labels <- tibble(
     vid = c(s1_villages, s2_villages),
     treat1 = c(s1_clusters, s2_clusters)
   )
 
+  # rejoin strata and treatment labels to original data 
   data_s1 <- data_raw %>% 
     left_join(strata_labels, by = "vid") %>% 
     left_join(cluster_labels, by = "vid")
   
-  ## 2. Cluster randomization of neighborhoods in the “LPP + Subsidy” condition into a 2x3 set of subtreatments indicating if they get    just the subsidy, or the subsidy + supply, and the level of the intensity of the vouchers.
+  ## 2. Cluster randomization of neighborhoods in the “LPP + Subsidy” condition 
+  ## into a 2x3 set of subtreatments indicating if they get just the subsidy,
+  ## or the subsidy + supply, and the level of the intensity of the vouchers.
 
   ## first cluster randomize into LPP + Subsidy and LPP + Subsidy + Supply
   
+  ## this is done at the neighborhood level so first get a list of the 
+  ## distinct neighborhoods who received "LPP + Subsidy"
   n_cid <- data_s1 %>% 
     filter(treat1 == "LPP+Subsidy") %>% 
     distinct(cid) %>% 
     nrow()
   
   # recover how many cid should be given LPP + Subsidy and LPP + Subsidy + Supply
+  # I chose to just balance this as best as possible 
+  
+  # this code just deals with the fact that sometimes the number of neighborhoods
+  # that need to be reassigned is an odd number
   if (n_cid %% 2 == 1) {
     n1 <- floor(n_cid/2)
     n2 <- floor(n_cid/2) + 1
@@ -238,23 +278,33 @@ randomization_scheme <- function() {
     n2 <- n_cid/2
   }
  
-  
+  # randomly assign neighborhoods within LPP + Subsidy to either LPP + Subsidy
+  # or LPP + Subsidy + Supply
   stage2_labels <- data_s1 %>% 
     filter(treat1 == "LPP+Subsidy") %>% 
     distinct(cid) %>% 
-    mutate(stage2grp = sample(c(rep("LPP+Subsidy", n1), rep("LPP+Subsidy+Supply", n2)), n1 + n2)) 
+    mutate(
+      stage2grp = sample(
+        c(rep("LPP+Subsidy", n1), rep("LPP+Subsidy+Supply", n2)), n1 + n2
+        )
+      ) 
   
+  # within LPP + Subsidy neighborhoods do a bernoulli random assignment of intensity
   p1 <- stage2_labels %>% 
     filter(stage2grp == "LPP+Subsidy") %>% 
     mutate(intensity = sample(c("High", "Medium", "Low"), n1, replace = T))
     
   
+  # within LPP + Subsidy + Supply neighborhoods do a bernoulli random 
+  # assignment of intensity
   p2 <- stage2_labels %>% 
     filter(stage2grp == "LPP+Subsidy+Supply") %>% 
     mutate(intensity = sample(c("High", "Medium", "Low"), n2, replace = T))
-  
+
   stage2_labels_final <- rbind(p1, p2)
   
+  
+  # join the intensity labels to the original data by neighborhood
   data_s2 <- data_s1 %>% 
     left_join(stage2_labels_final, by = "cid") %>% 
     mutate(treat1 = case_when(
@@ -268,33 +318,50 @@ randomization_scheme <- function() {
     )) %>% 
     select(-intensity)
   
-  ## 3: Randomization of the vouchers for households in the “LPP + Subsidy” conditions, given their intensity assignment.
+  ## 3: Randomization of the vouchers for households in the “LPP + Subsidy”
+  ## conditions, given their intensity assignment.
   ## note: by household
   
   # high- 60%
   # medium- 50%
   # low- 40%
-  # gotten from the table below 
+  # I looked at roughly how many winners there were per category in the randomization
+  # in the original data set. I ran the commented out code below to get this
   # data_raw %>% 
   #   group_by(treat_cat_3) %>% 
   #   summarise(n = n_distinct(hhid))
   
+  # use bernoulli randomization to assign winners of the lottery by 
+  # household to low intensity neighborhoods using the varying
+  # success probabilities from above
+  
   s2_1 <- data_s2 %>% 
     filter(treat2 == "Low") %>% 
-    mutate(lottery = sample(c("Winner", "Loser"), n(), replace = T, prob = c(0.4, 0.6)))
+    mutate(lottery = sample(
+      c("Winner", "Loser"), n(),
+      replace = T, prob = c(0.4, 0.6)
+      ))
   
   s2_2 <- data_s2 %>% 
     filter(treat2 == "Medium") %>% 
-    mutate(lottery = sample(c("Winner", "Loser"), n(), replace = T, prob = c(0.5, 0.5)))
+    mutate(lottery = sample(
+      c("Winner", "Loser"), n(),
+      replace = T, prob = c(0.5, 0.5)
+      ))
   
   s2_3 <- data_s2 %>% 
     filter(treat2 == "High") %>% 
-    mutate(lottery = sample(c("Winner", "Loser"), n(), replace = T, prob = c(0.6, 0.4)))
+    mutate(lottery = sample(
+      c("Winner", "Loser"), n(),
+      replace = T, prob = c(0.6, 0.4)
+      ))
   
+  # formatting
   lottery_labels <- rbind(s2_1, s2_2, s2_3) %>% 
     mutate(lottery = paste0(lottery, " (", treat2, ")")) %>% 
     select(hhid, lottery)
   
+  # rejoin everything together
   data_s3 <- data_s2 %>% 
     left_join(lottery_labels, by = "hhid") %>% 
     mutate(treat3 = case_when(
@@ -302,11 +369,7 @@ randomization_scheme <- function() {
       T ~ lottery
     )) %>% 
     select(-lottery) %>% 
-    mutate(r4_recode = case_when(
-      r4_any_od_adults == "Yes" ~ 1L,
-      r4_any_od_adults == "No" ~ 0L
-    )) %>% 
-    select(hhid, cid, vid, r4_recode, treat3) 
+    select(hhid, cid, vid, r4_recode, treat3, treat_cat_3) 
   
   return(data_s3)
   
@@ -317,8 +380,9 @@ randomization_scheme <- function() {
 
 ### d
 
-```{r, eval = F}
+The results from the randomization inference are saved and reloaded in for the analysis portion so that the code doesn't have to be re-run every single time
 
+```{r, eval = F}
 null_dist <- data.frame(dim = rep(0, 5000))
 
 for(i in 1:5000) {
@@ -329,11 +393,9 @@ for(i in 1:5000) {
 
   null_dist[i, ] <- coef(lm(r4_recode ~ treat3, iter))[2]
 }
-
 ```
 
-```{r}
-
+```{r, message=F, warning=F}
 null_dist <- read_csv(here("data", "hw3_p2_null_dist.csv"))
 
 data_sub <- data_raw %>% 
@@ -347,67 +409,162 @@ data_sub <- data_raw %>%
 true_dim <- coef(lm(r4_recode ~ treat_cat_3, data_sub))[2]
 
 p_val_one_sided <- mean(null_dist$dim < true_dim)
-p_val_two_sided <- mean(null_dist$dim < -abs(true_dim)) + mean(null_dist$dim > abs(true_dim))
+p_val_two_sided <- mean(null_dist$dim < -abs(true_dim)) +
+  mean(null_dist$dim > abs(true_dim))
 
 one_sided <- null_dist %>% 
   mutate(filler = ifelse(dim > true_dim, "more", "less")) %>% 
   ggplot(aes(x = dim, fill = filler)) +
   geom_histogram(binwidth = 0.0058, show.legend = F) +
   scale_fill_manual(values = c("#4c5c4d", "#a9ccaa")) +
-  geom_vline(xintercept = true_dim, color = "red", linetype = "dashed", linewidth = 1.2) +
+  geom_vline(
+    xintercept = true_dim, color = "red",
+    linetype = "dashed", linewidth = 1.2
+    ) +
   theme_minimal() +
-  annotate(geom = "text", x = -0.11, y = 150, label = "p-value = 0.092", color = "#d11611")
+  annotate(
+    geom = "text", x = -0.11, y = 150,
+    label = "p-value = 0.092", color = "#d11611"
+      )
 
 
 
 two_sided <- null_dist %>% 
-  mutate(filler = ifelse(dim < -abs(true_dim) | dim > abs(true_dim), "shade", "no-shade")) %>% 
+  mutate(filler = ifelse(
+    dim < -abs(true_dim) | dim > abs(true_dim), "shade", "no-shade"
+    )) %>% 
   ggplot(aes(x = dim, fill = filler)) +
   geom_histogram(binwidth = 0.0055, show.legend = F) +
-  geom_vline(xintercept = -abs(true_dim), color = "red", linetype = "dashed", linewidth = 1.2) +
-  geom_vline(xintercept = abs(true_dim), color = "red", linetype = "dashed", linewidth = 1.2) +
+  geom_vline(
+    xintercept = -abs(true_dim), color = "red",
+    linetype = "dashed", linewidth = 1.2
+    ) +
+  geom_vline(
+    xintercept = abs(true_dim), color = "red",
+    linetype = "dashed", linewidth = 1.2
+    ) +
   scale_fill_manual(values = c("#a9ccaa", "#4c5c4d")) +
   theme_minimal() +
-  annotate(geom = "text", x = -0.11, y = 150, label = "p-value = 0.17", color = "#d11611" )
+  annotate(
+    geom = "text", x = -0.11, y = 150,
+    label = "p-value = 0.17", color = "#d11611"
+      )
 ```
+
+
+We can interpret the p-value as follows: the probability of observing a similar treatment effect under the null hypothesis (which says that the treatment effect is zero for all units) is 0.092. And the probability of observing a similar absolute treatment effect under the sharp null is 0.17.
 
 ```{r}
 one_sided / two_sided
 ```
 
+Because these p-values are not significant (not even borderline) we cannot reject the sharp null. Essentially we have shown that across many hypothetical treatment randomizations under the sharp null, we would still sometimes expect to see the observed treatment effect.
+
 ### e
+
+I don't think that this difference in results necessarily is due to differences in the randomization scheme since I tried to very closely follow 
 
 ### f
 
-```{r}
-grid <- true_dim + seq(from=-4, to=4, length.out=200) 
+```{r, eval = F}
+grid <- true_dim + seq(from = -0.25, to = 0.25, length.out = 300) 
 
-Null_Dist_Matrix <- NULL
+Null_Dist_df <- matrix(data = rep(0, 300000), ncol = 300)
+
 for(i in 1:1000){
   d_new <- randomization_scheme()$treat3
-  New_DIM <- data.frame(rep(0, 200))
-  for(v in grid){
-    data_raw %>% 
-      mutate(D_new = d_new) %>% 
+  New_DIM <- c(rep(0, 300))
+  for(v in 1:length(grid)){
+    new_po <- data_raw %>% 
+      mutate(D_old = case_when(
+        treat_cat_3 == "Control" ~ 0,
+        T ~ 1
+      )) %>% 
+      mutate(D_new_raw = d_new) %>% 
+      mutate(D_new = case_when(
+        D_new_raw == "Control" ~ 0,
+        T ~ 1
+      )) %>% 
+      select(r4_recode, D_old, D_new) %>% 
+      drop_na() %>% 
       mutate(
-        Y_0 = r4_recode - D*v,
-        Y_1 = r4_recode + (1-D)*v,
-        Y_new = 
+        Y_0 = r4_recode - D_old*grid[v],
+        Y_1 = r4_recode + (1-D_old)*grid[v],
+        Y_new = D_new*Y_1 + (1 - D_new)*Y_0
         )
-    # Create new POs based on null value
-    y0_h0 <- y - d*v
-    y1_h0 <- y + (1-d)*v
-    y_new <- d_new*y1_h0 + (1-d_new)*y0_h0
-    # New DIM
-    fit <- lm(y_new~d_new)
-    dim_new <- fit$coefficients["d_new"]
-    New_DIM <- c(New_DIM, dim_new)
-  } # end of v
-  Null_Dist_Matrix <- rbind(Null_Dist_Matrix, New_DIM)
+  
+    fit <- lm(Y_new ~ D_new, new_po)
+    dim_new <- fit$coefficients["D_new"]
+    New_DIM[v] <- dim_new
+  } 
+  Null_Dist_df[i, ] <- New_DIM
+  
+  
+  
 } 
+
+
+
 ```
 
 
+```{r, message=F, warning = F}
+grid <- true_dim + seq(from = -0.25, to = 0.25, length.out = 300) 
+Null_Dist_df <- read_csv(here("data", "hw3_p2_fisher_ci.csv"))
+
+p_value_vec <- rep(0, 300)
+
+for(i in 1:length(grid)){
+  # Get corresponding null distribution and null value
+  temp_null_dist <- Null_Dist_df[ ,i]
+  v <- grid[i]
+  # absolute difference between observed and assumed
+  diff <- abs(true_dim-v)
+  # Get adjusted p-value -- probability of as far or further away from assumed
+  temp_p <-
+    mean(temp_null_dist >= v + diff) +
+    mean(temp_null_dist <= v - diff)
+  # Add to p-value vector
+  p_value_vec[i] <- temp_p
+}
+```
+
+
+```{r}
+over <- which(p_value_vec>0.05)
+index_lwr <- over[1]-1
+index_upr <- over[length(over)]+1
+ci <- c(grid[index_lwr], grid[index_upr])
+```
+
+
+```{r}
+tibble(
+  p_value = p_value_vec,
+  sharp_null_effect = grid
+) %>% 
+  ggplot(aes(x = sharp_null_effect, y = p_value)) +
+  geom_line(linewidth = 2) +
+  geom_vline(
+    xintercept = ci[1], linetype = "dashed",
+    linewidth = 0.8, color = "red"
+      ) +
+  geom_vline(
+    xintercept = ci[2], linetype = "dashed",
+    linewidth = 0.8, color = "red"
+      ) +
+  geom_hline(
+    yintercept = 0.05, color = "darkblue",
+    linewidth = 0.9
+    ) +
+  theme_minimal() +
+  labs(
+    x = "Sharp Null Effect",
+    y = "p-value"
+  )
+```
+
+This confidence interval (`r round(ci[1], 4)`, `r round(ci[2], 4)`) tells us the range of observed treatment effect within which we would not reject the sharp null hypothesis.
 
 ## 3
 
@@ -465,4 +622,14 @@ $$
 as desired
 
 ### c
+
+$$
+\begin{aligned}
+\hat{\tau}_{Lin} &= \underset{\tau}{\text{argmin}}\sum_{i=1}^n\bigg[Y_i - \Big(\tau D_i + (X_i - \bar{X})^T\hat{\beta}_{Lin} + D_i(X_i - \bar{X})^T\hat{\gamma}_{Lin}\Big)\bigg]^2 \\
+&= \underset{\tau}{\text{argmin}}\sum_{i=1}^n\bigg[\Big(Y_i - (X_i - \bar{X})^T\hat{\beta}_{Lin} - D_i(X_i - \bar{X})^T\hat{\gamma}_{Lin}\Big) - \tau D_i\bigg]^2 \\
+&= \frac{1}{n_1}\sum_{D_i = 1}\Big(Y_i - (X_i - \bar{X})^T\hat{\beta}_{Lin} - (X_i - \bar{X})^T\hat{\gamma}_{Lin}\Big) - \frac{1}{n_0}\sum_{D_i = 0}\Big(Y_i - (X_i - \bar{X})^T\hat{\beta}_{Lin} \Big) \\
+&= \underbrace{\bigg[\frac{1}{n_1}\sum_{D_i = 1}Y_i - \frac{1}{n_0}\sum_{D_i = 0 }Y_i\bigg]}_{\hat{\tau}_{dim}} - \frac{1}{n_1}\sum_{D_i = 1}(X_i - \bar{X})^T\hat{\beta}_{Lin} - \frac{1}{n_1}\sum_{D_i = 1}(X_i - \bar{X})^T\hat{\gamma}_{Lin} + \frac{1}{n_0}\sum_{D_i = 0}(X_i - \bar{X})^T\hat{\beta}_{Lin} \\
+&= \hat{\tau}_{dim}
+\end{aligned}
+$$
 
