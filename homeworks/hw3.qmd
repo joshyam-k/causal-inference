@@ -140,10 +140,15 @@ res %>%
     names_to = "sampling_mechanism",
     values_to = "dim"
     ) %>% 
-  ggplot(aes(x = dim, fill = sampling_mechanism)) +
-  geom_density(alpha = 0.4, show.legend = F) +
-  facet_wrap(~ sampling_mechanism, ncol = 1) +
-  theme_minimal()
+  ggplot(aes(x = sampling_mechanism, y = dim)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(
+    x = "Sampling Mechanism",
+    y = "Difference in Means"
+  )
+  
+
 ```
 
 
@@ -225,6 +230,7 @@ randomization_scheme <- function() {
   ## partitioned in the next stage 
   
   # randomly assign the first level of treatment conditions to entire villages by strata
+  # did this as complete randomization
   s1_clusters <- sample(
     c(
       rep("Control", 11), rep("LPP_Only", 6),
@@ -268,38 +274,29 @@ randomization_scheme <- function() {
   # recover how many cid should be given LPP + Subsidy and LPP + Subsidy + Supply
   # I chose to just balance this as best as possible 
   
-  # this code just deals with the fact that sometimes the number of neighborhoods
-  # that need to be reassigned is an odd number
-  if (n_cid %% 2 == 1) {
-    n1 <- floor(n_cid/2)
-    n2 <- floor(n_cid/2) + 1
-  } else {
-    n1 <- n_cid/2
-    n2 <- n_cid/2
-  }
  
   # randomly assign neighborhoods within LPP + Subsidy to either LPP + Subsidy
-  # or LPP + Subsidy + Supply
+  # or LPP + Subsidy + Supply using bernoulli randomization
   stage2_labels <- data_s1 %>% 
     filter(treat1 == "LPP+Subsidy") %>% 
     distinct(cid) %>% 
-    mutate(
-      stage2grp = sample(
-        c(rep("LPP+Subsidy", n1), rep("LPP+Subsidy+Supply", n2)), n1 + n2
-        )
-      ) 
+    mutate(stage2id = rbinom(n(), 1, 0.5)) %>% 
+    mutate(stage2grp = case_when(
+      stage2id == 1 ~ "LPP+Subsidy",
+      T ~ "LPP+Subsidy+Supply"
+    ))
   
   # within LPP + Subsidy neighborhoods do a bernoulli random assignment of intensity
   p1 <- stage2_labels %>% 
     filter(stage2grp == "LPP+Subsidy") %>% 
-    mutate(intensity = sample(c("High", "Medium", "Low"), n1, replace = T))
+    mutate(intensity = sample(c("High", "Medium", "Low"), n(), replace = T))
     
   
-  # within LPP + Subsidy + Supply neighborhoods do a bernoulli random 
+  # within LPP + Subsidy + Supply neighborhoods do bernoulli random
   # assignment of intensity
   p2 <- stage2_labels %>% 
     filter(stage2grp == "LPP+Subsidy+Supply") %>% 
-    mutate(intensity = sample(c("High", "Medium", "Low"), n2, replace = T))
+    mutate(intensity = sample(c("High", "Medium", "Low"), n(), replace = T))
 
   stage2_labels_final <- rbind(p1, p2)
   
@@ -322,14 +319,10 @@ randomization_scheme <- function() {
   ## conditions, given their intensity assignment.
   ## note: by household
   
-  # high- 60%
+  # high- 75%
   # medium- 50%
-  # low- 40%
-  # I looked at roughly how many winners there were per category in the randomization
-  # in the original data set. I ran the commented out code below to get this
-  # data_raw %>% 
-  #   group_by(treat_cat_3) %>% 
-  #   summarise(n = n_distinct(hhid))
+  # low- 25%
+  # per the paper
   
   # use bernoulli randomization to assign winners of the lottery by 
   # household to low intensity neighborhoods using the varying
@@ -339,7 +332,7 @@ randomization_scheme <- function() {
     filter(treat2 == "Low") %>% 
     mutate(lottery = sample(
       c("Winner", "Loser"), n(),
-      replace = T, prob = c(0.4, 0.6)
+      replace = T, prob = c(0.25, 0.75)
       ))
   
   s2_2 <- data_s2 %>% 
@@ -353,7 +346,7 @@ randomization_scheme <- function() {
     filter(treat2 == "High") %>% 
     mutate(lottery = sample(
       c("Winner", "Loser"), n(),
-      replace = T, prob = c(0.6, 0.4)
+      replace = T, prob = c(0.75, 0.25)
       ))
   
   # formatting
@@ -369,7 +362,7 @@ randomization_scheme <- function() {
       T ~ lottery
     )) %>% 
     select(-lottery) %>% 
-    select(hhid, cid, vid, r4_recode, treat3, treat_cat_3) 
+    select(hhid, cid, vid, r4_recode, eligible, treat3, treat_cat_3) 
   
   return(data_s3)
   
@@ -388,17 +381,21 @@ null_dist <- data.frame(dim = rep(0, 5000))
 for(i in 1:5000) {
   iter <- randomization_scheme()
   iter <- iter %>%
+    filter(eligible == "Eligible") %>% 
     filter(treat3 == "Winner (Low)" | treat3 == "Control") %>% 
     drop_na()
 
   null_dist[i, ] <- coef(lm(r4_recode ~ treat3, iter))[2]
+
 }
+
 ```
 
 ```{r, message=F, warning=F}
 null_dist <- read_csv(here("data", "hw3_p2_null_dist.csv"))
 
 data_sub <- data_raw %>% 
+  filter(eligible == "Eligible") %>% 
   filter(treat_cat_3 == "Winner (Low)" | treat_cat_3 == "Control") %>% 
    mutate(r4_recode = case_when(
       r4_any_od_adults == "Yes" ~ 1L,
@@ -423,8 +420,8 @@ one_sided <- null_dist %>%
     ) +
   theme_minimal() +
   annotate(
-    geom = "text", x = -0.11, y = 150,
-    label = "p-value = 0.092", color = "#d11611"
+    geom = "text", x = -0.17, y = 150,
+    label = "p-value = 0.007", color = "#d11611"
       )
 
 
@@ -446,23 +443,24 @@ two_sided <- null_dist %>%
   scale_fill_manual(values = c("#a9ccaa", "#4c5c4d")) +
   theme_minimal() +
   annotate(
-    geom = "text", x = -0.11, y = 150,
-    label = "p-value = 0.17", color = "#d11611"
+    geom = "text", x = -0.17, y = 150,
+    label = "p-value = 0.016", color = "#d11611"
       )
 ```
 
 
-We can interpret the p-value as follows: the probability of observing a similar treatment effect under the null hypothesis (which says that the treatment effect is zero for all units) is 0.092. And the probability of observing a similar absolute treatment effect under the sharp null is 0.17.
+We can interpret the p-value as follows: the probability of observing a similar treatment effect under the null hypothesis (which says that the treatment effect is zero for all units) is 0.007. And the probability of observing a similar absolute treatment effect under the sharp null is 0.016.
 
 ```{r}
 one_sided / two_sided
 ```
 
-Because these p-values are not significant (not even borderline) we cannot reject the sharp null. Essentially we have shown that across many hypothetical treatment randomizations under the sharp null, we would still sometimes expect to see the observed treatment effect.
+Because these p-values are significant we can reject the sharp null. Essentially we have shown that across many hypothetical treatment randomizations under the sharp null, we would very rarely expect to see an observed treatment effect as extreme as the observed one.
+
 
 ### e
 
-I don't think that this difference in results necessarily is due to differences in the randomization scheme since I tried to very closely follow 
+I think my findings align with the authors original findings because I followed their randomization scheme as closely as possible. Besides small potential differences in complete vs bernoulli randomization during the different phases of the process, everything else followed what the authors did. I guess this reassures me that the effect found in the paper was a significant one, but it still feels a bit like the intricacies of the randomization scheme could have played a role in getting the result.
 
 ### f
 
@@ -497,14 +495,11 @@ for(i in 1:1000){
     dim_new <- fit$coefficients["D_new"]
     New_DIM[v] <- dim_new
   } 
+  
   Null_Dist_df[i, ] <- New_DIM
   
   
-  
 } 
-
-
-
 ```
 
 
@@ -527,10 +522,7 @@ for(i in 1:length(grid)){
   # Add to p-value vector
   p_value_vec[i] <- temp_p
 }
-```
 
-
-```{r}
 over <- which(p_value_vec>0.05)
 index_lwr <- over[1]-1
 index_upr <- over[length(over)]+1
@@ -564,7 +556,7 @@ tibble(
   )
 ```
 
-This confidence interval (`r round(ci[1], 4)`, `r round(ci[2], 4)`) tells us the range of observed treatment effect within which we would not reject the sharp null hypothesis.
+This confidence interval (`r round(ci[1], 4)`, `r round(ci[2], 4)`) tells us the range of observed treatment effect within which we would not reject the sharp null hypothesis. I
 
 ## 3
 
@@ -587,6 +579,7 @@ $$
 \end{aligned}
 $$
 
+as desired.
 
 ### b
 
@@ -623,13 +616,35 @@ as desired
 
 ### c
 
+First we'll simplify the expression for $-\hat{\beta}_{n, \ Lin}$
+
+$$
+\begin{aligned}
+-\hat{\beta}_{n, \ Lin} &= -\bigg(\frac{1}{n_1}\sum_{D_i = 1}(X_i^T(\hat{\beta}_{Lin} + \hat{\gamma}_{Lin}) + \hat{\tau}_{Lin}) - \frac{1}{n}\sum_{i=1}^n(X_i^T(\hat{\beta}_{Lin} + \hat{\gamma}_{Lin}) + \hat{\tau}_{Lin}) \bigg) +  \\
+& \ \ \  \ \ \bigg(\frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{Lin} - \frac{1}{n}\sum_{i=1}^nX_i^T\hat{\beta}_{Lin}\bigg) \\
+&= -\bigg(\frac{1}{n_1}\sum_{D_i = 1}X_i^T(\hat{\beta}_{Lin} + \hat{\gamma}_{Lin}) - \frac{1}{n}\sum_{i=1}^nX_i^T(\hat{\beta}_{Lin} + \hat{\gamma}_{Lin}) \bigg) + \bigg(\frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{Lin} - \frac{1}{n}\sum_{i=1}^nX_i^T\hat{\beta}_{Lin}\bigg) \\
+&= -\bigg(\frac{1}{n_1}\sum_{D_i = 1}X_i^T(\hat{\beta}_{Lin} + \hat{\gamma}_{Lin}) - \frac{1}{n}\sum_{i=1}^nX_i^T\hat{\beta}_{Lin} - \frac{1}{n}\sum_{i=1}^nX_i^T\hat{\gamma}_{Lin}\bigg) + \\ & \ \ \ \ \ \bigg(\frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{Lin} - \frac{1}{n}\sum_{i=1}^nX_i^T\hat{\beta}_{Lin}\bigg) \\
+&= -\frac{1}{n_1}\sum_{D_i = 1}X_i^T(\hat{\beta}_{Lin} + \hat{\gamma}_{Lin})  + \frac{1}{n}\sum_{i=1}^nX_i^T\hat{\gamma}_{Lin} + \bigg(\frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{Lin} \bigg) 
+\end{aligned}
+$$
+
+next we can write out some of the terms of $\hat{\tau}_{Lin}$
+
 $$
 \begin{aligned}
 \hat{\tau}_{Lin} &= \underset{\tau}{\text{argmin}}\sum_{i=1}^n\bigg[Y_i - \Big(\tau D_i + (X_i - \bar{X})^T\hat{\beta}_{Lin} + D_i(X_i - \bar{X})^T\hat{\gamma}_{Lin}\Big)\bigg]^2 \\
 &= \underset{\tau}{\text{argmin}}\sum_{i=1}^n\bigg[\Big(Y_i - (X_i - \bar{X})^T\hat{\beta}_{Lin} - D_i(X_i - \bar{X})^T\hat{\gamma}_{Lin}\Big) - \tau D_i\bigg]^2 \\
 &= \frac{1}{n_1}\sum_{D_i = 1}\Big(Y_i - (X_i - \bar{X})^T\hat{\beta}_{Lin} - (X_i - \bar{X})^T\hat{\gamma}_{Lin}\Big) - \frac{1}{n_0}\sum_{D_i = 0}\Big(Y_i - (X_i - \bar{X})^T\hat{\beta}_{Lin} \Big) \\
-&= \underbrace{\bigg[\frac{1}{n_1}\sum_{D_i = 1}Y_i - \frac{1}{n_0}\sum_{D_i = 0 }Y_i\bigg]}_{\hat{\tau}_{dim}} - \frac{1}{n_1}\sum_{D_i = 1}(X_i - \bar{X})^T\hat{\beta}_{Lin} - \frac{1}{n_1}\sum_{D_i = 1}(X_i - \bar{X})^T\hat{\gamma}_{Lin} + \frac{1}{n_0}\sum_{D_i = 0}(X_i - \bar{X})^T\hat{\beta}_{Lin} \\
-&= \hat{\tau}_{dim}
+&= \underbrace{\bigg[\frac{1}{n_1}\sum_{D_i = 1}Y_i - \frac{1}{n_0}\sum_{D_i = 0 }Y_i\bigg]}_{\hat{\tau}_{dim}} - \frac{1}{n_1}\sum_{D_i = 1}(X_i - \bar{X})^T\hat{\beta}_{Lin} - \frac{1}{n_1}\sum_{D_i = 1}(X_i - \bar{X})^T\hat{\gamma}_{Lin} + \\
+ & \ \ \ \ \ \ \frac{1}{n_0}\sum_{D_i = 0}(X_i - \bar{X})^T\hat{\beta}_{Lin} \\
+&= \hat{\tau}_{dim} - \frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\beta}_{Lin} + \bar{X}^T\hat{\beta}_{Lin} - \frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\gamma}_{Lin} + \bar{X}^T\hat{\gamma}_{Lin} + \frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{Lin} - \bar{X}^T\hat{\beta}_{Lin} \\
+&= \hat{\tau}_{dim} \underbrace{- \frac{1}{n_1}\sum_{D_i = 1}X_i^T(\hat{\beta}_{Lin} + \hat{\gamma}_{Lin}) + \frac{1}{n}\sum_{D_i = 1}X_i^T\hat{\gamma}_{Lin} + \frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{Lin}}_{\hat{\beta}_{n, \ Lin}} \\
+&= \hat{\tau}_{dim} - \hat{\beta}_{n, Lin}
 \end{aligned}
 $$
+
+as desired.
+
+
+### d
 
