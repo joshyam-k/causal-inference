@@ -460,7 +460,7 @@ Because these p-values are significant we can reject the sharp null. Essentially
 
 ### e
 
-I think my findings align with the authors original findings because I followed their randomization scheme as closely as possible. Besides small potential differences in complete vs bernoulli randomization during the different phases of the process, everything else followed what the authors did. I guess this reassures me that the effect found in the paper was a significant one, but it still feels a bit like the intricacies of the randomization scheme could have played a role in getting the result.
+I think my findings align with the authors original findings because I followed their randomization scheme as closely as possible. Besides small potential differences in complete vs bernoulli randomization during the different phases of the process, everything else followed what the authors did. I guess this reassures me that the effect found in the paper was not just a result of a "lucky" iteration of their randomization assignment, but it still feels a bit like the intricacies of the randomization scheme could have played a role in getting the result.
 
 ### f
 
