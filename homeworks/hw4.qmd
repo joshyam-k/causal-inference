@@ -123,4 +123,102 @@ The minimal ones are
 
 ### b
 
-must include z or c or both and then any combination of $B, A, X, W$
+must include Z or C or both and then any combination of $B, A, X, W$, can also just include C only.
+
+- $\{Z, C\}$, $\{C\}$
+
+
+## 5
+
+### a
+
+$$
+P(X, Y, Z) = P(X|Z)P(Y | X, Z)P(Z)
+$$
+
+### b
+
+\begin{tikzpicture}
+  \node (z) {$Z$};
+  \node (y) [below right of=z] {$Y$};
+  \node (x) [below left of=z] {$X = x$};
+  
+  \draw[->] (x) -- (y);
+  \draw[->] (z) -- (y);
+\end{tikzpicture}
+
+### c
+
+$$
+\begin{aligned}
+P(Y, Z \ | \ \text{do}(X=x)) &= P_m(Z)P_m(X = x|Z)P_m(Y | X = x, Z) \\
+&= P(Z)P(Y|X = x, Z)
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+P(Y \ | \ \text{do}(X = x)) &= \sum_zP(Y, Z = z \ | \ \text{do}(X = x)) \\
+&= \sum_zP(Z = z)P(Y | X = x, Z = z)
+\end{aligned}
+$$
+
+### d
+
+$$
+P(X, Y, Z) = P(X)P(Y | X)P(Z |X,Y)
+$$
+
+
+### e
+
+\begin{tikzpicture}
+  \node (z) {$Z$};
+  \node (y) [below right of=z] {$Y$};
+  \node (x) [below left of=z] {$X = x$};
+  
+  \draw[->] (x) -- (z);
+  \draw[->] (x) -- (y);
+  \draw[->] (y) -- (z);
+\end{tikzpicture}
+
+### f
+
+$$
+\begin{aligned}
+P(Y, Z \ | \ \text{do}(X = x)) &= P_m(X = x)P_m(Y | X = x)P_m(Z | X=x, Y) \\
+&= P(Y|X = x)P(Z|X = x, Y)
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+P(Y \ | \ \text{do}(X = x)) &= \sum_zP(Y, Z \ | \ \text{do}(X = x)) \\
+&= \sum_zP(Y|X = x)P(Z = z|X = x, Y) \\
+&=P(Y|X =x)\sum_zP(Z=z|X = x, Y) \\
+&= P(Y | X = x)\cdot 1 
+\end{aligned}
+$$
+
+### g
+
+No (as we'd expect)
+
+### h
+
+For common cause $\{Z\}$ satisfies the backdoor criterion and so we use tha adjustment formula to get
+
+$$
+P(Y \ | \ \text{do}(X = x)) = \sum_zP(Y | X = x, Z= z)P(Z = z)
+$$
+
+which is exactly what we got in part (c)
+
+
+For collider there are no backdoor paths into $X$. I suppose $\{\}$ sort of vacuously satisfies the backdoor criterion which indeed gives us
+
+$$
+P(Y \ | \ \text{do}(X = x)) = \sum_{\{\}}P(Y | X = x) = P(Y | X = x)
+$$
+
+which again is what we got previously.
