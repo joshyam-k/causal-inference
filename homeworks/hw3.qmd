@@ -421,7 +421,7 @@ one_sided <- null_dist %>%
   theme_minimal() +
   annotate(
     geom = "text", x = -0.17, y = 150,
-    label = "p-value = 0.007", color = "#d11611"
+    label = "p-value = 0.007", color = "#d11611", size = 2.8
       )
 
 
@@ -444,7 +444,7 @@ two_sided <- null_dist %>%
   theme_minimal() +
   annotate(
     geom = "text", x = -0.17, y = 150,
-    label = "p-value = 0.016", color = "#d11611"
+    label = "p-value = 0.016", color = "#d11611", size = 2.8
       )
 ```
 
@@ -465,13 +465,13 @@ I think my findings align with the authors original findings because I followed 
 ### f
 
 ```{r, eval = F}
-grid <- true_dim + seq(from = -0.25, to = 0.25, length.out = 300) 
+grid <- true_dim + seq(from = -0.25, to = 0.25, length.out = 200) 
 
-Null_Dist_df <- matrix(data = rep(0, 300000), ncol = 300)
+Null_Dist_df <- matrix(data = rep(0, 200000), ncol = 200)
 
 for(i in 1:1000){
   d_new <- randomization_scheme()$treat3
-  New_DIM <- c(rep(0, 300))
+  New_DIM <- c(rep(0, 200))
   for(v in 1:length(grid)){
     new_po <- data_raw %>% 
       mutate(D_old = case_when(
@@ -498,16 +498,16 @@ for(i in 1:1000){
   
   Null_Dist_df[i, ] <- New_DIM
   
-  
 } 
 ```
 
 
 ```{r, message=F, warning = F}
-grid <- true_dim + seq(from = -0.25, to = 0.25, length.out = 300) 
+grid <- true_dim + seq(from = -0.25, to = 0.25, length.out = 200) 
+
 Null_Dist_df <- read_csv(here("data", "hw3_p2_fisher_ci.csv"))
 
-p_value_vec <- rep(0, 300)
+p_value_vec <- rep(0, 200)
 
 for(i in 1:length(grid)){
   # Get corresponding null distribution and null value
@@ -556,7 +556,7 @@ tibble(
   )
 ```
 
-This confidence interval (`r round(ci[1], 4)`, `r round(ci[2], 4)`) tells us the range of observed treatment effect within which we would not reject the sharp null hypothesis. I
+This confidence interval (`r round(ci[1], 4)`, `r round(ci[2], 4)`) tells us the range sharp nulls that would not get rejected at the $\alpha = 0.05$ significance level
 
 ## 3
 
@@ -648,3 +648,4 @@ as desired.
 
 ### d
 
+What we've shown is that in the cases of $\hat{\tau}_{ols}$ and $\hat{\tau}_{Lin}$, as long as the more complex models introduced are helpful in predicting $Y$ then we should see efficiency gains. Essentially we've showed that when the models are helpful, then we'll be able to capture the $B_n - E_n$ piece in part (a) that $\hat{\tau}_{dim}$ was not able to. Thus in these cases we should end up with an estimate that is closer to the SATE.

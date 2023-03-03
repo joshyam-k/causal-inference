@@ -1,0 +1,126 @@
+---
+title: "hw4"
+format: pdf
+pdf-engine: xelatex
+mainfont: Times
+editor: visual
+---
+
+## 1
+
+### a
+
+$W, Y$
+
+### b
+
+$X, W, Y$
+
+### c
+
+$Y, Z$
+
+### d
+
+$Y, Z, T$
+
+### e
+
+- $X-Y-T$
+- $X-Y-Z-T$
+- $X-Y-W-Z-T$
+- $X-W-Y-T$
+- $X-W-Y-Z-T$
+- $X-W-Z-T$
+- $X-W-Z-Y-T$
+
+### f
+
+- $X-Y-T$
+- $X-Y-Z-T$
+- $X-W-Y-T$
+- $X-W-Y-Z-T$
+- $X-W-Z-T$
+
+## 2
+
+### a
+
+\begin{tikzpicture}
+  \node (x) {$X$};
+  \node (ux) [above of=x] {$U_X$};
+  \node (y) [below left of=x] {$Y$};
+  \node (uy) [above of=y] {$U_Y$};
+  \node (z) [below right of=x] {$Z$};
+  \node (uz) [above of=z] {$U_Z$};
+  
+  \draw[->] (x) -- (y);
+  \draw[->] (y) -- (z);
+  \draw[dashed, ->] (uz) -- (z);
+  \draw[dashed, ->] (ux) -- (x);
+  \draw[dashed, ->] (uy) -- (y);
+\end{tikzpicture}
+
+
+### b
+
+$$
+\begin{aligned}
+E[Z | Y = 3] = \sum_{z}zP(Z = z| Y = 3) = 0 \ + \ ... \ + \ 0 + \frac{3}{16}\cdot 1 + 0 + \ ... \ + 0 = \frac{3}{16}
+\end{aligned}
+$$
+
+### c
+
+$$
+E[Z | X = 3] = \sum_zzP(Z = z | X = 3) = \frac{1}{16}
+$$
+
+### d
+
+We apply the Markov condition here:
+
+$$
+E[Z | X = 1, Y = 3] = \sum_zzP(Z  = z| X = 1, Y = 3) = \sum_zzP(Z = z | Y = 3) = \frac{3}{16}
+$$
+
+
+## 3
+
+### a
+
+- $\{X, Z_2\}$ are d-separated by $\{Z_3, Z_1\}$
+- $\{X, Y\}$ are d-separated by $\{W, Z_2, Z_3\}$
+- $\{Z_1, W\}$ are d-separated by $\{X\}$
+- $\{Z_1, Z_2\}$ are d-separated by $\{\}$
+- $\{Z_1, Y\}$ are d-separated by $\{W, Z_3, Z_2\}$
+- $\{Z_3, W\}$ are d-separated by $\{X\}$
+- $\{Z_2, W\}$ are d-separated by $\{X\}$
+
+### b
+
+- $\{W, Z_3\}$ are d-separated by $\{X\}$
+- $\{W, Z_1\}$ are d-separated by $\{X\}$
+
+### c
+
+Yes.
+
+## 4
+
+### a
+
+Needs Z and then any combination of $A, B, C, D$
+
+- $\{Z, D\}$, $\{Z, C\}$, $\{Z, B\}$, $\{Z, A\}$
+- $\{Z, D, C\}$, $\{Z, D, B\}$, $\{Z, D, A\}$, $\{Z, C, A\}$, $\{Z, B, A\}$, $\{Z, B, C\}$
+- $\{X, D, C, B\}$, $\{Z, D, C, A\}$, $\{Z, D, B, A\}$, $\{Z, B, C, A\}$
+- $\{Z, D, C, B, A\}$
+
+The minimal ones are 
+
+- $\{Z, D\}$, $\{Z, C\}$, $\{Z, B\}$, $\{Z, A\}$
+
+### b
+
+must include z or c or both and then any combination of $B, A, X, W$
