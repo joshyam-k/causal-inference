@@ -104,7 +104,7 @@ $$
 
 ### c
 
-Yes.
+I don't think it would hurt the quality of our prediction since it is essentially double blocking a backdoor path that would already get blocked by not conditioning on $Y$. It certainly *would* help, if we were conditioning on $Y$ though.
 
 ## 4
 
@@ -119,13 +119,18 @@ Needs Z and then any combination of $A, B, C, D$
 
 The minimal ones are 
 
-- $\{Z, D\}$, $\{Z, C\}$, $\{Z, B\}$, $\{Z, A\}$
+- $\{Z, D\}$, $\{Z, C\}$, $\{Z, B\}$, $\{Z, A\}$, $\{Z, X\}$, $\{Z, W\}$
 
 ### b
 
-must include Z or C or both and then any combination of $B, A, X, W$, can also just include C only.
+The sets can be described as follows:
 
-- $\{Z, C\}$, $\{C\}$
+One option is to include only $c$. Otherwise, the set 
+
+- must include Z or C or both. If it does not include $C$ it must also have
+- any combination of $B, A, X, W$
+
+The minimal sets are $\{C\}$, $\{Z, A\}$, $\{Z, B\}$
 
 
 ## 5
@@ -215,10 +220,35 @@ $$
 which is exactly what we got in part (c)
 
 
-For collider there are no backdoor paths into $X$. I suppose $\{\}$ sort of vacuously satisfies the backdoor criterion which indeed gives us
+For collider there are no backdoor paths into $X$. Thus we simply have
 
 $$
-P(Y \ | \ \text{do}(X = x)) = \sum_{\{\}}P(Y | X = x) = P(Y | X = x)
+P(Y \ | \ \text{do}(X = x))  = P(Y | X = x)
 $$
 
 which again is what we got previously.
+
+## 6
+
+Suppose we are trying to estimate the effect of Daniel's jokes on how well the 394 students understand the material
+
+- $D$: Daniel's jokes
+- $Y$: 394 students understand the material
+- $X_1$: Friendship with Daniel
+- $X_2$: How well Daniel is feeling 
+
+Friendship with Daniel affects how well Daniel is feeling, which in turn affects what Daniel's jokes are like. What's more, since Daniel is a genius, friendship with him results in a greater understanding of the material. Unfortunately we often don't know the true inner feelings of Daniel, but in this case where we simply care about estimating a causal effect, we don't have to worry about the fact that this variable is unobserved.
+
+
+\begin{tikzpicture}
+  \node (D) {$D$};
+  \node (Y) [right of=D] {$Y$};
+  \node (X1) [above of=Y]{$X_1$};
+  \node (X2) [above of=D] {$X_2$};
+  \draw[->] (D) -- (Y);
+  \draw[->] (X1) -- (Y);
+  \draw[dashed, ->] (X1) -- (X2);
+  \draw[dashed, ->] (X2) -- (D);
+\end{tikzpicture}
+
+I don't really think that this setting is very plausible in reality. In trying to think of an example I felt like most of the time a utilization of the backdoor criterion is only possible when we observe variables that we would not realistically observe. It's only in these fairly fabricated examples where we observe exactly the variables we need to observe in order to satisfy the backdoor criterion.
