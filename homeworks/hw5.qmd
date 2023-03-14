@@ -1,0 +1,51 @@
+---
+title: "hw5"
+format: pdf
+editor: visual
+---
+
+## 1
+
+### a
+
+Identify the ATE under conditional ignorability:
+
+$$
+\begin{aligned}
+E[Y(1) - Y(0)] &= E\Big[E[Y(1) \ | \ X]\Big]  - E\Big[E[Y(0) \ | \ X]\Big]\qquad \text{iterated expectation}\\
+&= E\Big[E[Y(1) \ | \ X, \ D = 1]\Big]  - E\Big[E[Y(0) \ | \ X, \ D = 0]\Big] \qquad \text{CI}
+\end{aligned}
+$$
+
+### b
+
+
+
+## 2
+
+### a
+
+```{r, message=F, warning=F}
+library(tidyverse)
+dgp_p2 <- function(n) {
+  tibble(
+    x1 = rnorm(n, 0, 1),
+    x2 = rchisq(n, 1),
+    prob_D = exp(0.5*x1 + 0.5*x2 - 0.5)/(1 + exp(0.5*x1 + 0.5*x2 - 0.5)),
+    D = rbinom(n, 1, prob_D),
+    prob_Y = exp(0.6*x1 + 0.2*x2 + 0.5*x1*x2)/(1 + exp(0.6*x1 + 0.2*x2 + 0.5*x1*x2)),
+    Y = rbinom(n, 1, prob_Y)
+  ) %>% 
+    select(-prob_D, - prob_Y)
+}
+```
+
+
+```{r}
+sim <- function(n) {
+  data <- dgp_p2(n)
+  dim <- lm(Y ~ D, data)$coefficients[2]
+  mod_y <- glm(Y ~ x1 + x2 + x1*x2, data, family = "binomial")
+}
+```
+
