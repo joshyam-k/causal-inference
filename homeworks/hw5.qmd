@@ -42,10 +42,48 @@ dgp_p2 <- function(n) {
 
 
 ```{r}
-sim <- function(n) {
-  data <- dgp_p2(n)
-  dim <- lm(Y ~ D, data)$coefficients[2]
-  mod_y <- glm(Y ~ x1 + x2 + x1*x2, data, family = "binomial")
+
+att_est <- function(dat) {
+  mod_y <- glm(Y ~ x1 + x2 + x1*x2, dat[dat$D == 0, ], family = "binomial")
+  p1 <- mean(dat[dat$D == 1, "Y", drop = T])
+  p2 <- mean(predict(mod_y, newdata = dat[dat$D==1, ], type = "response"))
+  est_att <- p1 - p2
+
+  return(est_att)
 }
+
+bootstrap <- function(dat){
+  ests <- rep(0, 400)
+  for(i in 1:400) {
+    dat_boot <- dat %>% 
+      slice_sample(n = 200, replace = T)
+    
+    ests[i] <- att_est(dat_boot)
+  }
+  return(ests)
+}
+
+
+sim <- function(df) {
+  dim <- lm(Y ~ D, df)$coefficients[2]
+  est_att <- att_est(df)
+  boots <- bootstrap(df)
+  ci <- quantile(boots, c(0.025, 0.975))
+  
+  tibble(
+    dim = dim,
+    att_hat = est_att,
+    lower = ci[1],
+    upper = ci[2]
+  )
+}
+
+data_list <- list()
+for(i in 1:2){
+  data_list[[i]] <- dgp_p2(300)
+}
+
+a <- data_list %>% 
+  map_dfr(sim)
 ```
 
