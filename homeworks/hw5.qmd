@@ -41,7 +41,7 @@ dgp_p2 <- function(n) {
 ```
 
 
-```{r}
+```{r, eval = F}
 
 att_est <- function(dat) {
   mod_y <- glm(Y ~ x1 + x2 + x1*x2, dat[dat$D == 0, ], family = "binomial")
@@ -56,7 +56,7 @@ bootstrap <- function(dat){
   ests <- rep(0, 400)
   for(i in 1:400) {
     dat_boot <- dat %>% 
-      slice_sample(n = 200, replace = T)
+      slice_sample(n = 400, replace = T)
     
     ests[i] <- att_est(dat_boot)
   }
@@ -79,11 +79,31 @@ sim <- function(df) {
 }
 
 data_list <- list()
-for(i in 1:2){
-  data_list[[i]] <- dgp_p2(300)
+for(i in 1:200){
+  data_list[[i]] <- dgp_p2(400)
 }
 
-a <- data_list %>% 
+res <- data_list %>% 
   map_dfr(sim)
+
+```
+
+```{r, message=F, warning=F}
+library(here)
+
+res <- read_csv(here("data", "hw5_res.csv"))
+
+res %>% 
+  pivot_longer(cols = c(dim, att_hat), names_to = "estimator", values_to = "vals") %>% 
+  ggplot(aes(x = estimator, y = vals)) +
+  geom_boxplot()
+```
+
+```{r}
+res %>% 
+  rowwise() %>% 
+  mutate(covers = between(0, lower, upper)) %>% 
+  ungroup() %>% 
+  summarise(coverage = mean(covers))
 ```
 
