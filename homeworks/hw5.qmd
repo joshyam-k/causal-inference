@@ -146,3 +146,69 @@ res %>%
 ```
 
 ## 3
+
+non random assignment and clustered data
+
+
+```{r}
+dgp_p3 <- function(n){
+  
+  # grouped data
+  X <- rnorm(n)
+  group <- rep(seq(1, 10), n/10) 
+  group_intercepts <- rnorm(10, 0, 5)
+  Y <- 10 + 3*X +  group_intercepts[group]
+  
+  ## assignments
+  prob <- exp(X + group_intercepts[group])/(1 + exp(X + group_intercepts[group]))
+  D <- rbinom(n, 1, prob)
+  
+  tibble(
+    x = X,
+    d = D,
+    y = Y
+  )
+}
+```
+
+
+```{r}
+sim <- function(data){
+  data$x1_center <- data$x - mean(data[data$d == 1, "x", drop = T])
+  
+  # dim
+  dim <- coef(lm(y ~ d, data))["d"]
+  
+  # lin
+  lin <- coef(lm(y ~ d + x1_center + d*x1_center, data))["d"]
+  
+  # ols
+  y1 <- mean(data[data$d == 1, "y", drop = T])
+  ols_mod <- lm(y ~ x, data[data$d == 0, ])
+  ols_pred <- mean(predict(ols_mod, newdata = data[data$d == 1, ]))
+  ols <- y1 - ols_pred
+  
+  tibble(
+    estimator = c("dim", "ols", "lin"),
+    val = c(dim, ols, lin)
+  )
+}
+```
+
+```{r}
+sim_data <- list()
+for(i in 1:1000) {
+  sim_data[[i]] <- dgp_p3(1000)
+}
+
+res <- sim_data %>% 
+  map_dfr(sim)
+```
+
+```{r}
+res %>% 
+  ggplot(aes(x = estimator, y = val)) +
+  geom_boxplot() +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+```
+
