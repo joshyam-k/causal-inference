@@ -19,7 +19,36 @@ $$
 
 ### b
 
+We can write that
 
+$$
+\begin{aligned}
+\hat{\tau}_{Lin} &= \underset{\tau}{\text{argmin}}\sum_{i=1}^n\bigg[Y_i - \Big(\tau D_i + (X_i - \bar{X_1})^T\hat{\beta}_{Lin} + D_i(X_i - \bar{X_1})^T\hat{\gamma}_{Lin}\Big)\bigg]^2 \\
+&= \underset{\tau}{\text{argmin}}\sum_{i=1}^n\bigg[\Big(Y_i - (X_i - \bar{X_1})^T\hat{\beta}_{Lin} - D_i(X_i - \bar{X_1})^T\hat{\gamma}_{Lin}\Big) - \tau D_i\bigg]^2 \\
+&= \frac{1}{n_1}\sum_{D_i = 1}\Big(Y_i - (X_i - \bar{X_1})^T\hat{\beta}_{Lin} - (X_i - \bar{X_1})^T\hat{\gamma}_{Lin}\Big) - \frac{1}{n_0}\sum_{D_i = 0}\Big(Y_i - (X_i - \bar{X_1})^T\hat{\beta}_{Lin} \Big) \\
+&= \underbrace{\bigg[\frac{1}{n_1}\sum_{D_i = 1}Y_i - \frac{1}{n_0}\sum_{D_i = 0 }Y_i\bigg]}_{\hat{\tau}_{dim}} - \frac{1}{n_1}\sum_{D_i = 1}(X_i - \bar{X_1})^T\hat{\beta}_{Lin} - \frac{1}{n_1}\sum_{D_i = 1}(X_i - \bar{X_1})^T\hat{\gamma}_{Lin} + \\
+ & \ \ \ \ \ \ \frac{1}{n_0}\sum_{D_i = 0}(X_i - \bar{X_1})^T\hat{\beta}_{Lin} \\
+&= \hat{\tau}_{dim} - \frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\beta}_{Lin} + \bar{X_1}^T\hat{\beta}_{Lin} - \frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\gamma}_{Lin} + \bar{X_1}^T\hat{\gamma}_{Lin} + \frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{Lin} - \bar{X_1}^T\hat{\beta}_{Lin} \\
+&= \hat{\tau}_{dim} - \frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{Lin} - \bar{X_1}^T\hat{\beta}_{Lin} \\
+&= \frac{1}{n_1}\sum_{D_i = 1}Y_i - \frac{1}{n_0}\sum_{D_i = 0}Y_i - \frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{Lin} - \frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\beta}_{Lin}
+\end{aligned}
+$$
+
+
+but now,
+
+$$
+\frac{1}{n_0}\sum_{D_i = 0}Y_i - \frac{1}{n_0}\sum_{D_i = 0}X_i^T\hat{\beta}_{Lin} = \frac{1}{n_0}\sum_{D_i = 0}\Big(Y_i - X_i^T\hat{\beta}_{Lin}\Big) = 0
+$$
+
+Because the residuals must sum to zero for this portion of the model. And so we are left with
+
+
+$$
+\frac{1}{n_1}\sum_{D_i = 1}Y_i - \frac{1}{n_1}\sum_{D_i = 1}X_i^T\hat{\beta}_{Lin}
+$$
+
+as desired.
 
 ## 2
 
@@ -40,7 +69,6 @@ dgp_p2 <- function(n) {
 }
 ```
 
-
 ```{r, eval = F}
 
 att_est <- function(dat) {
@@ -53,10 +81,10 @@ att_est <- function(dat) {
 }
 
 bootstrap <- function(dat){
-  ests <- rep(0, 400)
-  for(i in 1:400) {
+  ests <- rep(0, 500)
+  for(i in 1:500) {
     dat_boot <- dat %>% 
-      slice_sample(n = 400, replace = T)
+      slice_sample(n = 500, replace = T)
     
     ests[i] <- att_est(dat_boot)
   }
@@ -79,14 +107,16 @@ sim <- function(df) {
 }
 
 data_list <- list()
-for(i in 1:200){
-  data_list[[i]] <- dgp_p2(400)
+for(i in 1:500){
+  data_list[[i]] <- dgp_p2(500)
 }
 
 res <- data_list %>% 
   map_dfr(sim)
 
 ```
+
+Looks unbiased
 
 ```{r, message=F, warning=F}
 library(here)
@@ -95,9 +125,17 @@ res <- read_csv(here("data", "hw5_res.csv"))
 
 res %>% 
   pivot_longer(cols = c(dim, att_hat), names_to = "estimator", values_to = "vals") %>% 
+   mutate(estimator = case_when(
+    estimator == "att_hat" ~ "Regression Estimator",
+    estimator == "dim" ~ "DIM"
+  )) %>% 
   ggplot(aes(x = estimator, y = vals)) +
-  geom_boxplot()
+  geom_boxplot(fill = "grey60") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 1) +
+  theme_bw() 
 ```
+
+Correct coverage
 
 ```{r}
 res %>% 
@@ -107,3 +145,4 @@ res %>%
   summarise(coverage = mean(covers))
 ```
 
+## 3

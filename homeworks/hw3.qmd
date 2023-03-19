@@ -15,7 +15,6 @@ library(here)
 library(patchwork)
 ```
 
-
 ## 1
 
 ```{r}
@@ -44,18 +43,16 @@ dgp_p1 <- function() {
 
 ```
 
-
 ### a
 
 There are 10 students per school and 50 schools total, meaning taht there are 500 total students. The ATE here is 2, and the factors that influence the potential outcomes are some random noise from the $\mathcal{N}(0,1)$ instances added to each one, as well as the school specific random intercept called 'gamma'.
 
 ### b
 
-1) Complete: Randomly draw 250 students to be treated
-2) Bernoulli: Probability of treatment for each student is 0.5
-3) Cluster: Randomly draw 25 schools to be treated
-4) Statified: Within each school, randomly draw 5 students to be treated
-
+1)  Complete: Randomly draw 250 students to be treated
+2)  Bernoulli: Probability of treatment for each student is 0.5
+3)  Cluster: Randomly draw 25 schools to be treated
+4)  Statified: Within each school, randomly draw 5 students to be treated
 
 ```{r, message = F, warning = F}
 # empty results df to fill
@@ -151,7 +148,6 @@ res %>%
 
 ```
 
-
 ```{r}
 res %>% 
   summarise(across(everything(), var))
@@ -161,8 +157,7 @@ res %>%
 
 I think it makes sense that cluster randomization would have the highest variance because there are sort of two sources of variability being incorporated: variability within each chosen cluster and the variability between all of the clusters. The data is generated such that there is already variability between the clusters and by re-randomizing in such a way that entire clusters are randomly selected to be treated we essentially enhance that source of variability.
 
-One reason that we would expect the stratified randomization to have the lowest variance is because, unlike in the cluster randomization case, we don't have extra between-cluster variance. I think this is also reason that it has lower variance than the bernoulli and complete randomization cases, as in each re-randomization we ensure that observations from each cluster are included in the treatment. This gives us better balance across clusters and thus avoids more of that unwanted between-cluster variance. 
-
+One reason that we would expect the stratified randomization to have the lowest variance is because, unlike in the cluster randomization case, we don't have extra between-cluster variance. I think this is also reason that it has lower variance than the bernoulli and complete randomization cases, as in each re-randomization we ensure that observations from each cluster are included in the treatment. This gives us better balance across clusters and thus avoids more of that unwanted between-cluster variance.
 
 ## 2
 
@@ -192,10 +187,9 @@ coef(summary(lm(r4_recode ~ treat_cat_3 , data)))[ -1,1] %>%
 
 ```
 
-
 ### b
 
-I think that the main reason has to do with the fact that it would spark controversy and issues within clusters if some individuals were afforded better treatments than others. Furthermore there would likely be a lot of spillover if the treatment was individually assigned since friends and family would probably let each other benefit from their treatment. 
+I think that the main reason has to do with the fact that it would spark controversy and issues within clusters if some individuals were afforded better treatments than others. Furthermore there would likely be a lot of spillover if the treatment was individually assigned since friends and family would probably let each other benefit from their treatment.
 
 ### c
 
@@ -369,8 +363,6 @@ randomization_scheme <- function() {
 } 
 ```
 
-
-
 ### d
 
 The results from the randomization inference are saved and reloaded in for the analysis portion so that the code doesn't have to be re-run every single time
@@ -448,7 +440,6 @@ two_sided <- null_dist %>%
       )
 ```
 
-
 We can interpret the p-value as follows: the probability of observing a similar treatment effect under the null hypothesis (which says that the treatment effect is zero for all units) is 0.007. And the probability of observing a similar absolute treatment effect under the sharp null is 0.016.
 
 ```{r}
@@ -456,7 +447,6 @@ one_sided / two_sided
 ```
 
 Because these p-values are significant we can reject the sharp null. Essentially we have shown that across many hypothetical treatment randomizations under the sharp null, we would very rarely expect to see an observed treatment effect as extreme as the observed one.
-
 
 ### e
 
@@ -501,7 +491,6 @@ for(i in 1:1000){
 } 
 ```
 
-
 ```{r, message=F, warning = F}
 grid <- true_dim + seq(from = -0.25, to = 0.25, length.out = 200) 
 
@@ -528,7 +517,6 @@ index_lwr <- over[1]-1
 index_upr <- over[length(over)]+1
 ci <- c(grid[index_lwr], grid[index_upr])
 ```
-
 
 ```{r}
 tibble(
@@ -644,7 +632,6 @@ $$
 $$
 
 as desired.
-
 
 ### d
 
