@@ -147,6 +147,8 @@ res %>%
 
 ## 3
 
+### a
+
 non random assignment and clustered data
 
 
@@ -210,5 +212,57 @@ res %>%
   ggplot(aes(x = estimator, y = val)) +
   geom_boxplot() +
   geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+```
+
+
+### b
+
+```{r}
+library(KRLS)
+
+krls_sim <- function(data) {
+  
+  data_train <- data %>% 
+    filter(d == 0)
+  
+  data_pred <- data %>% 
+    filter(d == 1)
+  
+  X <- as.matrix(data_train$x)
+  y <- data_train$y
+  
+  mod <- krls(
+    X = X, y = y,
+    whichkernel = "gaussian", sigma = ncol(X),
+    derivative = F, vcov = F
+  )
+  
+  preds <- predict(mod, newdata = as.matrix(data_pred$x))
+  
+  return(mean(data_pred$y) -  mean(preds$fit))
+  
+}
+```
+
+
+```{r, eval = F}
+res_krls <- sim_data %>% 
+  map_dbl(krls_sim)
+
+fin <- tibble(
+  res = res_krls,
+  estimator = rep("krls", 1000)
+)
+```
+
+```{r, message=F, warning=F}
+krls_res <- read_csv(here("data", "hw5_p3.csv"))
+
+
+krls_res %>% 
+  ggplot(aes(x = estimator, y = res)) +
+  geom_boxplot() +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+
 ```
 
