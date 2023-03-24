@@ -17,6 +17,8 @@ E[Y(1) - Y(0)] &= E\Big[E[Y(1) \ | \ X]\Big]  - E\Big[E[Y(0) \ | \ X]\Big]\qquad
 \end{aligned}
 $$
 
+If we had infinite data then for all values of X we would have treated and control units with the same value of X. With this we'd be able to perfectly estimate the inner and outer expectations of both terms.
+
 ### b
 
 We can write that
@@ -149,7 +151,7 @@ res %>%
 
 ### a
 
-non random assignment and clustered data
+non random assignment and clustered data should bias all estimators that do not properly specify this phenomenon
 
 
 ```{r}
@@ -158,8 +160,8 @@ dgp_p3 <- function(n){
   # grouped data
   X <- rnorm(n)
   group <- rep(seq(1, 10), n/10) 
-  group_intercepts <- rnorm(10, 0, 5)
-  Y <- 10 + 3*X +  group_intercepts[group]
+  group_intercepts <- rnorm(10, 2, 5)
+  Y <- 3*X +  group_intercepts[group]
   
   ## assignments
   prob <- exp(X + group_intercepts[group])/(1 + exp(X + group_intercepts[group]))
@@ -207,8 +209,11 @@ res <- sim_data %>%
   map_dfr(sim)
 ```
 
-```{r}
-res %>% 
+```{r, message=F, warning=F}
+krls_res <- read_csv(here("data", "hw5_p3.csv")) %>% 
+  rename(val = res)
+
+bind_rows(res, krls_res) %>% 
   ggplot(aes(x = estimator, y = val)) +
   geom_boxplot() +
   geom_hline(yintercept = 0, color = "red", linetype = "dashed")
@@ -216,6 +221,8 @@ res %>%
 
 
 ### b
+
+I included the results from part b in the plot above, but below I show the code I used to generate those results.
 
 ```{r}
 library(KRLS)
@@ -255,14 +262,6 @@ fin <- tibble(
 )
 ```
 
-```{r, message=F, warning=F}
-krls_res <- read_csv(here("data", "hw5_p3.csv"))
 
 
-krls_res %>% 
-  ggplot(aes(x = estimator, y = res)) +
-  geom_boxplot() +
-  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
-
-```
 
