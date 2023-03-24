@@ -21,7 +21,7 @@ If we had infinite data then for all values of X we would have treated and contr
 
 ### b
 
-We can write that
+Even though the problem says otherwise, I will keep the intercept term in the $X_i$ vector since it's more clear for me when I do that. We can write that
 
 $$
 \begin{aligned}
@@ -151,7 +151,7 @@ res %>%
 
 ### a
 
-non random assignment and clustered data should bias all estimators that do not properly specify this phenomenon
+Non random assignment and clustered data should bias all estimators that do not properly specify this structure
 
 
 ```{r}
@@ -187,10 +187,7 @@ sim <- function(data){
   lin <- coef(lm(y ~ d + x1_center + d*x1_center, data))["d"]
   
   # ols
-  y1 <- mean(data[data$d == 1, "y", drop = T])
-  ols_mod <- lm(y ~ x, data[data$d == 0, ])
-  ols_pred <- mean(predict(ols_mod, newdata = data[data$d == 1, ]))
-  ols <- y1 - ols_pred
+  ols <- coef(lm(y ~ d + x, data))["d"]
   
   tibble(
     estimator = c("dim", "ols", "lin"),
