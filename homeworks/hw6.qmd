@@ -4,3 +4,273 @@ format: pdf
 editor: visual
 ---
 
+```{r, message = F, warning = F}
+library(tidyverse)
+library(MatchIt)
+library(ebal)
+library(here)
+```
+
+
+## 1
+
+### a
+
+$$
+\begin{aligned}
+E[\hat{\tau}_{wdim}] &= E\bigg[\frac{1}{n_1}\sum_{D_i =1}w_iY_i\bigg] - E\bigg[\frac{1}{n_0}\sum_{D_i =0}w_iY_i\bigg] \\
+&=E\Big[w(X)Y(1) \ | \ D = 1\Big] - E\Big[w(X)Y(0) \ | \ D = 0\Big] \\
+&=E\Big[E[w(X)Y(0) \ | \ X, \ D = 1] \ \Big| \ D = 1 \Big] - E\Big[E[w(X)Y(1) \ | \ X, \ D = 0] \ \Big| \ D = 0 \Big] \ \ \ \text{iterated E} \\ 
+&= E\Big[w(X)E[Y(0) \ | \ X] \ \Big| \ D = 1 \Big] - E\Big[w(X)E[Y(1) \ | \ X] \ \Big| \ D = 0 \Big] \qquad \qquad \qquad \ \ \ \ \ \  \text{CI} \\
+&= E[w(X)f_1(X) \ | \ D = 1] - E[w(X)f_0(X) \ | \ D = 0] \\
+&= E[f_1(X)] - E[f_0(X)] \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \ \ \  \text{WC-ATE} \\
+&= E[E[Y(1) \ | \ X]] - E[E[Y(0) \ | \ X]] \\
+&= E[Y(1)] - E[Y(0)] \\ 
+&= \text{ATE}
+\end{aligned}
+$$
+
+
+### b
+
+$$
+\begin{aligned}
+E[\hat{\tau}_{wdim}] &= E\bigg[\frac{1}{n_1}\sum_{D_i =1}w_iY_i\bigg] - E\bigg[\frac{1}{n_0}\sum_{D_i =0}w_iY_i\bigg] \\
+&= E[w(X)f_1(X) \ | \ D = 1] - E[w(X)f_0(X) \ | \ D = 0] \qquad \qquad \text{as shown above} \\
+&= E\bigg[\frac{1}{n_1}\sum_{D_i = 1}w_if_1(X_i)\bigg] - E\bigg[\frac{1}{n_0}\sum_{D_i = 0}w_if_0(X_i)\bigg] \\
+&= E\bigg[\frac{1}{n}\sum_{D_i = 1}f_1(X_i)\bigg] - E\bigg[\frac{1}{n}\sum_{D_i = 0}f_0(X_i)\bigg] \qquad \qquad \qquad \qquad \text{EWC-ATE} \\
+&= E[E[Y(1) \ | \ X]] - E[E[Y(0) \ | \ X]] \\
+&= E[Y(1)] - E[Y(0)] \\
+&= \text{ATE}
+\end{aligned}
+$$
+
+
+### c
+
+
+### d
+
+
+## 2
+
+```{r, warning=F, message=F}
+dgp1 <- function(n) {
+  x <- rnorm(n)
+  
+  prob <- exp(1.5*x-3.25) / (1 + exp(1.5*x-3.25)) 
+  d <- 1*(runif(n)<prob)
+
+  y <- x + rnorm(n, sd=0.75)
+
+  tibble(
+    x = x,
+    d = d,
+    y = y
+  )
+}
+```
+
+```{r}
+set.seed(394)
+
+n <- 1500
+data <- dgp1(n)
+```
+
+### a
+
+```{r}
+data %>% 
+  ggplot(aes(x = x, fill = factor(d))) +
+  geom_density(
+    alpha = 0.5,
+    color = NA
+    ) +
+  annotate("text", x = -2, y  = 0.3, label = "n = 1371", color = "red") +
+  annotate("text", x = 3, y  = 0.3, label = "n = 129", color = "#00BFC4") +
+  labs(
+    fill = "D"
+  ) +
+  theme_bw()
+```
+
+We can see that the distribution of X on the treated group seems to be shifted farther to the right than for the control group and also appears to have a bimodal structure that is not present in the control group. What's more we see a large discrepancy in sample size between the treatment and control groups with the control group having more than 10x the number of observations as the treatment group
+
+
+### b
+
+Results will be cached so I don't have to re-run this each time
+
+```{r, eval = F, message=F, warning = F}
+set.seed(100)
+
+sim_data_sets <- list()
+for(i in 1:500) {
+  sim_data_sets[[i]] <- dgp1(1500)
+}
+
+
+sim_run <- function(df) {
+  
+  uw_dim <- lm(y ~ d, df)$coefficients[2]
+  
+  ps_att_w <- matchit(
+    d ~ x,
+    data = df,
+    replace = T,
+    ratio = 3,
+    distance = "glm",
+    link = "logit",
+    estimand = "ATT"
+  )
+  
+  ps_atc_w <- matchit(
+    d ~ x,
+    data = df,
+    replace = T,
+    ratio = 3,
+    distance = "glm",
+    link = "logit",
+    estimand = "ATC"
+  )
+  
+  ps_att <- lm(y ~ d, weights = ps_att_w$weights, df)$coefficients[2]
+  ps_atc <- lm(y ~ d, weights = ps_atc_w$weights, df)$coefficients[2]
+  
+  # we get it, it converged within tolerance
+  ebal_att_w <-  ebalance(Treatment=df$d, X=df$x)
+  w_att <- rep(1, n)
+  w_att[df$d == 0] <- ebal_att_w$w
+  ebal_att <- lm(y ~ d, weights = w_att, df)$coefficients[2]
+  
+  ebal_atc_w <- ebalance(Treatment=1- df$d, X=df$x)
+  w_atc <- rep(1, n)
+  w_atc[df$d == 1] <- ebal_atc_w$w
+  ebal_atc <- lm(y ~ d, weights = w_atc, df)$coefficients[2]
+  
+  tibble(
+    uw_dim = uw_dim,
+    ps_att = ps_att,
+    ps_atc = ps_atc,
+    ebal_att = ebal_att,
+    ebal_atc = ebal_atc
+  ) %>% 
+    pivot_longer(
+      cols = everything(),
+      names_to = "estimator",
+      values_to = "val"
+    )
+}
+
+
+
+sim_res <- sim_data_sets %>% 
+  map_dfr(sim_run)
+
+
+```
+
+
+We see that the unweighted difference in means estimator is very biased. The entropy balancing for the att and atc are both unbiased but for the atc we see higher variance. On the other hand the propensity score matching for the atc is biased while for the att it is not, and additionally for the atc we see higher variance.
+
+```{r, message=F, warning=F}
+sim_res <- read_csv(here("data", "hw6_p2.csv"))
+
+sim_res %>% 
+  ggplot(aes(x = estimator, y = val)) +
+  geom_boxplot(fill = "lightblue") +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(
+    x = "",
+    y = "Estimate"
+  ) +
+  theme_bw()
+```
+
+### c
+
+In short, it's a lot easier to get close to satisfying EWC-ATT in this DGP because you get to use all of the units that were in the control group to do the matching and there are way more such units which means you're more likely to get good matching while also having minimal data loss. On the other hand it's harder to satisfy EWC-ATC in this DGP because you only can use units in the treatment group to do the matching and there are much fewer of these.
+
+
+### d
+
+I think it has to do with the fact that entropy balancing weights are not trying to "do as much" as propensity score matching is. While it's difficult to equate the distributions of the covariates in estimating the ATC for this setting, it's much easier to make the means more similar. This is mostly because the functions in the DGP are actually linear, so good balance on the means is good enough to get low bias.
+
+### e
+
+```{r, eval = F}
+atc_better <- function(df) {
+  ps_atc_w <- matchit(
+    d ~ x,
+    data = df,
+    replace = T,
+    ratio = 5,
+    distance = "glm",
+    link = "logit",
+    estimand = "ATC",
+    caliper = 0.05
+  )
+  
+  match_atc <- lm(y ~ d, weights = ps_atc_w$weights, df)$coefficients[2]
+  
+  tibble(
+    val = match_atc
+  )
+ 
+}
+
+atc_res <- sim_data_sets %>% 
+  map_dfr(atc_better) 
+
+atc_res <- atc_res %>% 
+  mutate(estimator = "knn_atc")
+
+```
+
+We can see that we managed to get something with near zero bias using a different matching technique. In the end I only had to change a few things to get better performance. First I upped the ratio, and secondly I employed a caliper. The idea here was that since there are not a ton of units to match on, we want to avoid really bad matches that are just made because the algorithm needs a set number of matches. Importantly, while we brought down the bias, the variance is still higher than most of the other estimators.
+
+```{r, message = F, warning=F}
+atc_res <- read_csv(here("data", "hw6_p2-2.csv"))
+
+sim_res %>% 
+  rbind(atc_res) %>% 
+  mutate(col = case_when(
+    estimator == "knn_atc" ~ "h",
+    T ~ "o"
+  )) %>% 
+  ggplot(aes(x = estimator, y = val, fill = col))+
+  geom_boxplot(show.legend = F) +
+  scale_fill_manual(values = c("cyan4", "grey80")) +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  theme_bw()
+```
+
+
+### f
+
+I've learned that choosing an estimand is heavily dependent on the data set and in particular on the features of the covariates in that data set. The decisions you make about what estimators and estimands to use should be made after doing thorough exploratory data analysis. You really have to know what's going on with the data before you have a good sense for what estimands will be easy to estimate, and which estimators will do the best job.
+
+
+## 3
+
+```{r}
+load(here("data", "nsw_clean_v2.rda"))
+```
+
+
+### a
+
+```{r}
+exp_nsw <- nsw_clean_v2 %>% 
+  filter(group != "3. Non-Experimental Comparison")
+
+exp_dim <- lm(re78 ~ group, exp_nsw)$coefficients[2]
+
+exp_dim
+```
+
+
+
+### b
+
