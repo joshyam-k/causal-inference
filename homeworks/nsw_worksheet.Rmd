@@ -262,20 +262,20 @@ The optimization differs from usual least squares in that we include the weights
 
 ------------------------------------------------------------------------
 
-The weights are making the untransformed covariate means equal across the groups
+The weights are making the untransformed covariate means equal across the groups.
 
 ```{r}
 nsw_clean %>% 
   select(age, re75, group) %>% 
   group_by(group) %>% 
-  summarise(across(age:re75, .fns = list(mean = mean, mean_sqrt = ~ mean(sqrt(.x)), mean_cubed = ~ mean(.x^3))))
+  summarise(across(age:re75, .fns = list(mean = mean, mean_cubed = ~ mean(.x^3))))
 
 
 nsw_clean %>% 
   select(age, re75, group, kbalw) %>% 
   mutate(age = age*kbalw, re75 = re75*kbalw) %>% 
   group_by(group) %>% 
-  summarise(across(age:re75, .fns = list(mean = mean, mean_sqrt = ~ mean(sqrt(.x)), mean_cubed = ~ mean(.x^3))))
+  summarise(across(age:re75, .fns = list(mean = mean, mean_cubed = ~ mean(.x^3))))
 ```
 
 
