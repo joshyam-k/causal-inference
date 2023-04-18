@@ -8,6 +8,7 @@ editor: visual
 library(tidyverse)
 library(MatchIt)
 library(ebal)
+library(kbal)
 library(here)
 ```
 
@@ -20,8 +21,8 @@ $$
 \begin{aligned}
 E[\hat{\tau}_{wdim}] &= E\bigg[\frac{1}{n_1}\sum_{D_i =1}w_iY_i\bigg] - E\bigg[\frac{1}{n_0}\sum_{D_i =0}w_iY_i\bigg] \\
 &=E\Big[w(X)Y(1) \ | \ D = 1\Big] - E\Big[w(X)Y(0) \ | \ D = 0\Big] \\
-&=E\Big[E[w(X)Y(0) \ | \ X, \ D = 1] \ \Big| \ D = 1 \Big] - E\Big[E[w(X)Y(1) \ | \ X, \ D = 0] \ \Big| \ D = 0 \Big] \ \ \ \text{iterated E} \\ 
-&= E\Big[w(X)E[Y(0) \ | \ X] \ \Big| \ D = 1 \Big] - E\Big[w(X)E[Y(1) \ | \ X] \ \Big| \ D = 0 \Big] \qquad \qquad \qquad \ \ \ \ \ \  \text{CI} \\
+&=E\Big[E[w(X)Y(1) \ | \ X, \ D = 1] \ \Big| \ D = 1 \Big] - E\Big[E[w(X)Y(0) \ | \ X, \ D = 0] \ \Big| \ D = 0 \Big] \ \ \ \text{iterated E} \\ 
+&= E\Big[w(X)E[Y(1) \ | \ X] \ \Big| \ D = 1 \Big] - E\Big[w(X)E[Y(0) \ | \ X] \ \Big| \ D = 0 \Big] \qquad \qquad \qquad \ \ \ \ \ \  \text{CI} \\
 &= E[w(X)f_1(X) \ | \ D = 1] - E[w(X)f_0(X) \ | \ D = 0] \\
 &= E[f_1(X)] - E[f_0(X)] \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \ \ \  \text{WC-ATE} \\
 &= E[E[Y(1) \ | \ X]] - E[E[Y(0) \ | \ X]] \\
@@ -33,24 +34,37 @@ $$
 
 ### b
 
+Let $Y(0) = f_0(X) + \epsilon$ and $Y(1) = f_1(X) + \epsilon$
+
 $$
 \begin{aligned}
-E[\hat{\tau}_{wdim}] &= E\bigg[\frac{1}{n_1}\sum_{D_i =1}w_iY_i\bigg] - E\bigg[\frac{1}{n_0}\sum_{D_i =0}w_iY_i\bigg] \\
-&= E[w(X)f_1(X) \ | \ D = 1] - E[w(X)f_0(X) \ | \ D = 0] \qquad \qquad \text{as shown above} \\
-&= E\bigg[\frac{1}{n_1}\sum_{D_i = 1}w_if_1(X_i)\bigg] - E\bigg[\frac{1}{n_0}\sum_{D_i = 0}w_if_0(X_i)\bigg] \\
-&= E\bigg[\frac{1}{n}\sum_{D_i = 1}f_1(X_i)\bigg] - E\bigg[\frac{1}{n}\sum_{D_i = 0}f_0(X_i)\bigg] \qquad \qquad \qquad \qquad \text{EWC-ATE} \\
-&= E[E[Y(1) \ | \ X]] - E[E[Y(0) \ | \ X]] \\
-&= E[Y(1)] - E[Y(0)] \\
-&= \text{ATE}
+E[\hat{\tau}_{wdim} - \text{SATE}] &= E\bigg[\frac{1}{n_1}\sum_{D_i =1}w_iY_i(1) - \frac{1}{n_0}\sum_{D_i =0}w_iY_i(0) - \frac{1}{n}\sum_{i=1}^n\Big(Y_i(1) - Y_i(0)\Big)\bigg] \\
+&= E\bigg[\frac{1}{n_1}\sum_{D_i = 1}w_if_1(X) - \frac{1}{n_0}\sum_{D_i = 0}w_if_0(X) - \frac{1}{n}\sum_{i=1}^nf_1(X) + \frac{1}{n}\sum_{i=1}^nf_0(X)\bigg]  \\
+& +\underbrace{\color{red}{E\bigg[\frac{1}{n_1}\sum_{D_i = 1}w_i\epsilon_i\bigg]}}_{0 \ \text{since} \ w_i \ \text{is entirely} \ \text{determined by X and D}} - \underbrace{\color{red}{E\bigg[\frac{1}{n_0}\sum_{D_i = 0}w_i\epsilon_i\bigg]}}_{0} - \underbrace{\color{red}{E\bigg[\frac{1}{n}\sum_{i=1}^n\epsilon_i\bigg]}}_{0} + \underbrace{\color{red}{E\bigg[\frac{1}{n}\sum_{i=1}^n\epsilon_i\bigg]}}_{0} \\
+&= E\bigg[\frac{1}{n_1}\sum_{D_i = 1}w_if_1(X) - \frac{1}{n_0}\sum_{D_i = 0}w_if_0(X) - \frac{1}{n}\sum_{i=1}^nf_1(X) + \frac{1}{n}\sum_{i=1}^nf_0(X)\bigg] \\
+&= E\bigg[\frac{1}{n}\sum_{i = 1}^nf_1(X) - \frac{1}{n}\sum_{i = 0}^nf_0(X) - \frac{1}{n}\sum_{i=1}^nf_1(X) + \frac{1}{n}\sum_{i=1}^nf_0(X)\bigg] \qquad \text{EWC-ATE} \\
+&= 0
+\end{aligned}
+$$
+
+Finally we know that $E[\hat{\tau}_{wdim} - \text{SATE}] = E[\hat{\tau}_{wdim} - \text{ATE}]$ because $E[\text{SATE}] = \text{ATE}$ and so we have that $\hat{\tau}_{wdim}$ is unbiased for the ATE under EWC-ATE
+
+### c
+
+$$
+\begin{aligned}
+E[\hat{\tau}_{wdim}] &= E\bigg[\frac{1}{n_1}\sum_{D_i =1}w_iY_i - \frac{1}{n_0}\sum_{D_i =0}w_iY_i\bigg] \\
+&= E\bigg[\frac{1}{n_1}\sum_{D_i = 1}\frac{P(D_i = 1)}{P(D_i = 1  \ | \ X)} Y_i\bigg] -E\bigg[ \frac{1}{n_0}\sum_{D_i=0}\frac{P(D_i = 0)}{P(D_i = 0  \ | \ X)}Y_i\bigg] \\
+&= E\bigg[\frac{1}{P(D = 1 \ | \ X)}E\Big[P(D = 1)Y(1) \ | \ X\Big]\bigg] - E\bigg[\frac{1}{P(D_i = 0 \ | \ X)}E\Big[P(D = 0)Y(0) \ | \ X\Big]\bigg] \\
+&= E\bigg[\frac{1}{P(D = 1 \ | \ X)}\bigg]
 \end{aligned}
 $$
 
 
-### c
-
 
 ### d
 
+When $f_0(X)$ and $f_1(X)$ are linear functions of $X$
 
 ## 2
 
@@ -265,12 +279,118 @@ load(here("data", "nsw_clean_v2.rda"))
 exp_nsw <- nsw_clean_v2 %>% 
   filter(group != "3. Non-Experimental Comparison")
 
-exp_dim <- lm(re78 ~ group, exp_nsw)$coefficients[2]
+exp_dim <- lm(re78 ~ treated, exp_nsw)$coefficients[2]
 
 exp_dim
 ```
 
 
-
 ### b
+
+
+```{r, warning = F, message = F, cache = T}
+nsw_use <- nsw_clean_v2 %>% 
+  filter(group != "2. Experimental Control")
+
+# inverse propensity score weighting
+psmod <- glm(
+  treated ~ age + education + nodegree + married + black + hispanic + re74 + re75,
+  family="binomial", data = nsw_use
+  )
+pi_hat <- psmod$fitted.values
+n1 <- sum(nsw_use$treated == 1)
+n0 <- sum(nsw_use$treated == 0)
+w_ps <- (n0 / n1) * pi_hat / (1 - pi_hat)
+
+w_ps[nsw_use$treated == 1] <- 1
+
+w_ps_norm <- w_ps
+w_ps_norm[nsw_use$treated==0] <- n0 * w_ps_norm[nsw_use$treated==0] / sum(w_ps_norm[nsw_use$treated==0])
+
+
+ips <- lm(re78 ~ treated, weights = w_ps_norm, data = nsw_use)$coefficients[2]
+
+
+# propensity score matching
+out <- matchit(
+  treated ~ age + education + re74 + re75 + black,
+  data = nsw_use,
+  replace = T,
+  ratio = 3,
+  distance = "glm",
+  link = "logit",
+  estimand = "ATT"
+)
+
+psm <- lm(re78 ~ treated, weights = out$weights, data = nsw_use)$coefficients[2]
+
+
+# entropy balancing weights
+X <- nsw_use %>% 
+  select(c(re74, re75, age, education)) %>% 
+  as.matrix()
+
+output <- ebalance(Treatment = nsw_use$treated, X = X)
+w_ebal <- rep(1, 2675)
+w_ebal[nsw_use$treated == 0] <- output$w
+
+ebal <- lm(re78 ~ treated, weights = w_ebal, data = nsw_use)$coefficients[2]
+
+X_c <- nsw_use %>% 
+  select(re74, re75, age, education, black, married) %>% 
+  as.matrix()
+
+# kernel balancing
+full_kbal <- kbal(
+  treatment = nsw_use$treated,
+  mixed_data = T,
+  cat_columns = c("black", married),
+  allx = X_c,
+  meanfirst = F
+)
+
+kbal.w <- full_kbal$w 
+
+kbal <- lm(re78 ~ treated, weights = kbal.w, data = nsw_use)$coefficients[2]
+
+tibble(
+  weights = c("inverse propensity score weights", "propensity score matching",
+    "entropy balancing weights", "kernel balancing weights"),
+  estimate = c(ips, psm, ebal, kbal)
+)
+
+```
+
+
+
+We can see that inverse propensity score weights gave us the closest estimate, propensity score matching was next closest, and the last two performed similarly in terms of distance from the unbiased estiamte in (a).
+
+### c
+
+Effective sample sizes are astonishingly low implying that we have very extreme weights for some units in every estimator. I did not performing any trimming in the matching estimator so there is nothing to report there.
+
+```{r}
+
+ess_calc <- function(wts) {
+  ids <- which(nsw_use$treated == 0)
+  wts_non_ex_comp <- wts[ids]
+  num <- sum(wts_non_ex_comp)^2
+  den <- sum(wts_non_ex_comp^2)
+  return(num/den)
+}
+
+smd_calc <- function(x, wts) {
+  
+}
+
+sum(nsw_use[nsw_use$treated == 1, "re74"]) - sum((nsw_use$re74*w_ps_norm)[nsw_use$treated == 0])
+
+tibble(
+  diagnostic = c("ess"),
+  inverse_ps = c(ess_calc(w_ps_norm)),
+  ps_match = c(ess_calc(out$weights)),
+  ebal = c(ess_calc(w_ebal)),
+  kbal = c(ess_calc(kbal.w))
+)
+```
 
