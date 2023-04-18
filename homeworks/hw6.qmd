@@ -51,16 +51,31 @@ Finally we know that $E[\hat{\tau}_{wdim} - \text{SATE}] = E[\hat{\tau}_{wdim} -
 
 ### c
 
+We can show that
+
 $$
 \begin{aligned}
-E[\hat{\tau}_{wdim}] &= E\bigg[\frac{1}{n_1}\sum_{D_i =1}w_iY_i - \frac{1}{n_0}\sum_{D_i =0}w_iY_i\bigg] \\
-&= E\bigg[\frac{1}{n_1}\sum_{D_i = 1}\frac{P(D_i = 1)}{P(D_i = 1  \ | \ X)} Y_i\bigg] -E\bigg[ \frac{1}{n_0}\sum_{D_i=0}\frac{P(D_i = 0)}{P(D_i = 0  \ | \ X)}Y_i\bigg] \\
-&= E\bigg[\frac{1}{P(D = 1 \ | \ X)}E\Big[P(D = 1)Y(1) \ | \ X\Big]\bigg] - E\bigg[\frac{1}{P(D_i = 0 \ | \ X)}E\Big[P(D = 0)Y(0) \ | \ X\Big]\bigg] \\
-&= E\bigg[\frac{1}{P(D = 1 \ | \ X)}\bigg]
+E[w(X)f_1(X) \ | \ D = 1] &= \int f_1(X)w(X)P(X \ | \ D = 1)dx \\
+&= \int f_1(X)\frac{P(D = 1)}{P(D = 1 \ | \ X)}P(X \ | \ D = 1)dx \\
+&= \int f_1(X)\frac{P(D = 1 \ | \ X)P(X)}{P(D = 1 \ | \ X)}dx \\
+&= \int f_1(X)p(X) dx \\
+&= E[f_1(X)]
 \end{aligned}
 $$
 
+and similarly 
 
+$$
+\begin{aligned}
+E[w(X)f_0(X) \ | \ D = 0] &= \int f_0(X)w(X)P(X \ | \ D = 0)dx \\
+&= \int f_0(X)\frac{P(D = 0)}{P(D = 0 \ | \ X)}P(X \ | \ D = 0)dx \\
+&= \int f_0(X)\frac{P(D = 0 \ | \ X)P(X)}{P(D = 0 \ | \ X)}dx \\
+&= \int f_0(X)p(X) dx \\
+&= E[f_0(X)]
+\end{aligned}
+$$
+
+So WC-ATE is satisfied and thus by part (a) $\hat{\tau}_{wdim}$ is unbiased for the ATE.
 
 ### d
 
@@ -288,7 +303,7 @@ exp_dim
 ### b
 
 
-```{r, warning = F, message = F, cache = T}
+```{r, warning = F, message = F, results = 'hide'}
 nsw_use <- nsw_clean_v2 %>% 
   filter(group != "2. Experimental Control")
 
@@ -337,14 +352,12 @@ w_ebal[nsw_use$treated == 0] <- output$w
 ebal <- lm(re78 ~ treated, weights = w_ebal, data = nsw_use)$coefficients[2]
 
 X_c <- nsw_use %>% 
-  select(re74, re75, age, education, black, married) %>% 
+  select(re74, re75, age, education) %>% 
   as.matrix()
 
 # kernel balancing
 full_kbal <- kbal(
   treatment = nsw_use$treated,
-  mixed_data = T,
-  cat_columns = c("black", married),
   allx = X_c,
   meanfirst = F
 )
@@ -353,14 +366,16 @@ kbal.w <- full_kbal$w
 
 kbal <- lm(re78 ~ treated, weights = kbal.w, data = nsw_use)$coefficients[2]
 
+```
+
+
+```{r}
 tibble(
   weights = c("inverse propensity score weights", "propensity score matching",
     "entropy balancing weights", "kernel balancing weights"),
   estimate = c(ips, psm, ebal, kbal)
 )
-
 ```
-
 
 
 We can see that inverse propensity score weights gave us the closest estimate, propensity score matching was next closest, and the last two performed similarly in terms of distance from the unbiased estiamte in (a).
