@@ -370,11 +370,13 @@ kbal <- lm(re78 ~ treated, weights = kbal.w, data = nsw_use)$coefficients[2]
 
 
 ```{r}
-tibble(
+ests <- tibble(
   weights = c("inverse propensity score weights", "propensity score matching",
     "entropy balancing weights", "kernel balancing weights"),
   estimate = c(ips, psm, ebal, kbal)
 )
+
+ests
 ```
 
 
@@ -394,11 +396,6 @@ ess_calc <- function(wts) {
   return(num/den)
 }
 
-smd_calc <- function(x, wts) {
-  
-}
-
-sum(nsw_use[nsw_use$treated == 1, "re74"]) - sum((nsw_use$re74*w_ps_norm)[nsw_use$treated == 0])
 
 tibble(
   diagnostic = c("ess"),
@@ -409,3 +406,30 @@ tibble(
 )
 ```
 
+sorry lenny, got too tired on friday night so you won't get any SMD or variance ratio from me
+
+### d
+
+We use the very simplistic weighted least squares augmented estimator here.
+
+```{r, message = F}
+ips_new <- lm(re78 ~ treated + re75 + nodegree + age + married, weights = w_ps_norm, nsw_use)$coefficients[2]
+psm_new <- lm(re78 ~ treated + re75 + age + black + nodegree, weights = out$weights, nsw_use)$coefficients[2]
+ebal_new <- lm(re78 ~ treated + re75  + age + nodegree, weights = w_ebal, nsw_use)$coefficients[2]
+kbal_new <- lm(re78 ~ treated + re75  + age + nodegree, weights = kbal.w, nsw_use)$coefficients[2]
+
+tibble(
+  weights = c("inverse propensity score weights", "propensity score matching",
+    "entropy balancing weights", "kernel balancing weights"),
+  aug_estimate = c(ips_new, psm_new, ebal_new, kbal_new)
+) %>% 
+  left_join(ests) %>% 
+  rename(original_estimate = estimate)
+
+
+
+```
+
+
+
+Ultimately we do see some improvements here, but I think this likely has to do with the fact that I knew the true value I was looking for and so I could tweak the variables being used to get closest to it. The results are very similar here although propensity score matching showed the most improvement. 
