@@ -103,7 +103,8 @@ data_clean %>%
 
 ```{r}
 model_data <- data_clean %>% 
-  mutate(D = ifelse(demvoteshare > 0.5, 1, 0))
+  mutate(D = ifelse(demvoteshare > 0.5, 1, 0)) %>% 
+  filter(between(demvoteshare, 0.48, 0.52))
 
 mod <- lm(dwnom ~ demvoteshare_t + D + demvoteshare_t*D, data = model_data)
 se <- sqrt(vcovHC(mod, type="HC")["D", "D"])
@@ -114,5 +115,46 @@ data.frame(
   lower = ci[1],
   upper = ci[2]
 )
+```
+
+
+```{r}
+randomization_scheme <- function() {
+  new_treat <- model_data %>% 
+    mutate(D_new = rbinom(654, 1, 0.5))
+  return(new_treat)
+}
+
+null_dist <- data.frame(est = rep(0, 5000))
+for(i in 1:5000){
+  dat <- randomization_scheme()
+  mod <- lm(dwnom ~ demvoteshare_t + D_new + demvoteshare_t*D_new, data = dat)
+  null_dist[i, ] <- mod$coefficients["D_new"]
+}
+
+null_dist %>% 
+  ggplot(aes(x = est)) +
+  geom_histogram(bins = 100) +
+  geom_vline(xintercept = -0.3710298, color = "red", linetype = "dashed") +
+  geom_vline(xintercept = 0.3710298, color = "red", linetype = "dashed")
+
+```
+
+
+
+## d
+
+Create this “lagged” DW-NOMINATE variable that within each district (district) and congress number (cngrsnum) takes the value of dwnom from the previous congress number. Note that we need to delete the observations where there was a redistricting prior to the election. The year variable of these observations take the value of 1932, 1942, 1952, 1962, 1972, 1982, 1992, and 2002.
+
+```{r}
+data %>% 
+  select(dwnom, demvoteshare, district, cngrsnum, year, state) %>% 
+  filter(!(year %in% c(1932, 1942, 1952, 1962, 1972, 1982, 1992, 2002))) %>% 
+  drop_na() %>% 
+  arrange(district, cngrsnum) %>% 
+  View()
+  
+  
+  
 ```
 
