@@ -1,0 +1,63 @@
+---
+title: "Untitled"
+output: pdf_document
+date: "2023-05-03"
+---
+
+## Proof Question
+
+Consider the following missingness-graph
+
+![](/Users/joshuayamamoto/Downloads/m_graph.png)
+
+Here we have that:
+
+-   $X$ and $Y$ are partially observed variables
+-   $R_X$ is the missingness mechanism for $X$ and $R_Y$ is the missingness mechanism for $Y$
+-   $X^*$ is a proxy variable for $X$ and $Y^*$ is a proxy for $Y$
+
+Recall that for a partially observed variable $V$, the proxy variable $V^*$ is expressed as
+
+- $V^* = (1- R_V)\cdot V + R_V\cdot m$
+
+
+(a) Using the missigness-graph, show that the quantity $P(X,Y)$ is *recoverable*, i.e that it can be expressed in terms of fully observed terms.
+
+(b) In words describe how $P(X, Y)$ can be estimated from the dataset using your final expression.
+
+
+
+
+### Solution 
+
+(a)
+
+From the missingness-graph we can see that we have
+
+- $X$ is independent of $R_X$ 
+- $Y$ is conditionally independent of $R_X \ \cup \ R_Y$ given $X$
+
+So we have that
+
+$$
+\begin{aligned}
+P(X, Y) &= P(Y | X)P(X) \\
+        &= P(Y | R_X, R_Y, X)P(X | R_X) 
+\end{aligned}
+$$
+
+in particular
+
+$$
+\begin{aligned}
+P(X, Y) &= P(Y | R_X = 0, R_Y = 0, X)P(X | R_X = 0)  \\
+&= P(Y^* | X^*, R_X = 0, R_Y = 0 )P(X^* | R_X = 0)
+\end{aligned}
+$$
+
+and all of these terms are observables.
+
+
+(b)
+
+We start by deleting all cases in which $X$ is missing in our dataset and estimate $P(X)$ from that. We then further remove all cases in which $Y$ is missing from that dataset where we removed cases where $X$ was missing and use this to estimate $P(Y | X)$.

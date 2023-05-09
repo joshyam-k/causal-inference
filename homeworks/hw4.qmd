@@ -26,26 +26,27 @@ $Y, Z, T$
 
 ### e
 
-- $X-Y-T$
-- $X-Y-Z-T$
-- $X-Y-W-Z-T$
-- $X-W-Y-T$
-- $X-W-Y-Z-T$
-- $X-W-Z-T$
-- $X-W-Z-Y-T$
+-   $X-Y-T$
+-   $X-Y-Z-T$
+-   $X-Y-W-Z-T$
+-   $X-W-Y-T$
+-   $X-W-Y-Z-T$
+-   $X-W-Z-T$
+-   $X-W-Z-Y-T$
 
 ### f
 
-- $X-Y-T$
-- $X-Y-Z-T$
-- $X-W-Y-T$
-- $X-W-Y-Z-T$
-- $X-W-Z-T$
+-   $X-Y-T$
+-   $X-Y-Z-T$
+-   $X-W-Y-T$
+-   $X-W-Y-Z-T$
+-   $X-W-Z-T$
 
 ## 2
 
 ### a
 
+```{=tex}
 \begin{tikzpicture}
   \node (x) {$X$};
   \node (ux) [above of=x] {$U_X$};
@@ -60,8 +61,7 @@ $Y, Z, T$
   \draw[dashed, ->] (ux) -- (x);
   \draw[dashed, ->] (uy) -- (y);
 \end{tikzpicture}
-
-
+```
 ### b
 
 $$
@@ -84,23 +84,22 @@ $$
 E[Z | X = 1, Y = 3] = \sum_zzP(Z  = z| X = 1, Y = 3) = \sum_zzP(Z = z | Y = 3) = \frac{3}{16}
 $$
 
-
 ## 3
 
 ### a
 
-- $\{X, Z_2\}$ are d-separated by $\{Z_3, Z_1\}$
-- $\{X, Y\}$ are d-separated by $\{W, Z_2, Z_3\}$
-- $\{Z_1, W\}$ are d-separated by $\{X\}$
-- $\{Z_1, Z_2\}$ are d-separated by $\{\}$
-- $\{Z_1, Y\}$ are d-separated by $\{W, Z_3, Z_2\}$
-- $\{Z_3, W\}$ are d-separated by $\{X\}$
-- $\{Z_2, W\}$ are d-separated by $\{X\}$
+-   $\{X, Z_2\}$ are d-separated by $\{Z_3, Z_1\}$
+-   $\{X, Y\}$ are d-separated by $\{W, Z_2, Z_3\}$
+-   $\{Z_1, W\}$ are d-separated by $\{X\}$
+-   $\{Z_1, Z_2\}$ are d-separated by $\{\}$
+-   $\{Z_1, Y\}$ are d-separated by $\{W, Z_3, Z_2\}$
+-   $\{Z_3, W\}$ are d-separated by $\{X\}$
+-   $\{Z_2, W\}$ are d-separated by $\{X\}$
 
 ### b
 
-- $\{W, Z_3\}$ are d-separated by $\{X\}$
-- $\{W, Z_1\}$ are d-separated by $\{X\}$
+-   $\{W, Z_3\}$ are d-separated by $\{X\}$
+-   $\{W, Z_1\}$ are d-separated by $\{X\}$
 
 ### c
 
@@ -112,26 +111,25 @@ I don't think it would hurt the quality of our prediction since it is essentiall
 
 Needs Z and then any combination of $A, B, C, D$
 
-- $\{Z, D\}$, $\{Z, C\}$, $\{Z, B\}$, $\{Z, A\}$
-- $\{Z, D, C\}$, $\{Z, D, B\}$, $\{Z, D, A\}$, $\{Z, C, A\}$, $\{Z, B, A\}$, $\{Z, B, C\}$
-- $\{X, D, C, B\}$, $\{Z, D, C, A\}$, $\{Z, D, B, A\}$, $\{Z, B, C, A\}$
-- $\{Z, D, C, B, A\}$
+-   $\{Z, D\}$, $\{Z, C\}$, $\{Z, B\}$, $\{Z, A\}$
+-   $\{Z, D, C\}$, $\{Z, D, B\}$, $\{Z, D, A\}$, $\{Z, C, A\}$, $\{Z, B, A\}$, $\{Z, B, C\}$
+-   $\{X, D, C, B\}$, $\{Z, D, C, A\}$, $\{Z, D, B, A\}$, $\{Z, B, C, A\}$
+-   $\{Z, D, C, B, A\}$
 
-The minimal ones are 
+The minimal ones are
 
-- $\{Z, D\}$, $\{Z, C\}$, $\{Z, B\}$, $\{Z, A\}$, $\{Z, X\}$, $\{Z, W\}$
+-   $\{Z, D\}$, $\{Z, C\}$, $\{Z, B\}$, $\{Z, A\}$, $\{Z, X\}$, $\{Z, W\}$
 
 ### b
 
 The sets can be described as follows:
 
-One option is to include only $c$. Otherwise, the set 
+One option is to include only $c$. Otherwise, the set
 
-- must include Z or C or both. If it does not include $C$ it must also have
-- any combination of $B, A, X, W$
+-   must include Z or C or both. If it does not include $C$ it must also have
+-   any combination of $B, A, X, W$
 
 The minimal sets are $\{C\}$, $\{Z, A\}$, $\{Z, B\}$
-
 
 ## 5
 
@@ -143,6 +141,7 @@ $$
 
 ### b
 
+```{=tex}
 \begin{tikzpicture}
   \node (z) {$Z$};
   \node (y) [below right of=z] {$Y$};
@@ -151,7 +150,7 @@ $$
   \draw[->] (x) -- (y);
   \draw[->] (z) -- (y);
 \end{tikzpicture}
-
+```
 ### c
 
 $$
@@ -174,9 +173,9 @@ $$
 P(X, Y, Z) = P(X)P(Y | X)P(Z |X,Y)
 $$
 
-
 ### e
 
+```{=tex}
 \begin{tikzpicture}
   \node (z) {$Z$};
   \node (y) [below right of=z] {$Y$};
@@ -186,7 +185,7 @@ $$
   \draw[->] (x) -- (y);
   \draw[->] (y) -- (z);
 \end{tikzpicture}
-
+```
 ### f
 
 $$
@@ -219,7 +218,6 @@ $$
 
 which is exactly what we got in part (c)
 
-
 For collider there are no backdoor paths into $X$. Thus we simply have
 
 $$
@@ -232,14 +230,14 @@ which again is what we got previously.
 
 Suppose we are trying to estimate the effect of Daniel's jokes on how well the 394 students understand the material
 
-- $D$: Daniel's jokes
-- $Y$: 394 students understand the material
-- $X_1$: Friendship with Daniel
-- $X_2$: How well Daniel is feeling 
+-   $D$: Daniel's jokes
+-   $Y$: 394 students understand the material
+-   $X_1$: Friendship with Daniel
+-   $X_2$: How well Daniel is feeling
 
 Friendship with Daniel affects how well Daniel is feeling, which in turn affects what Daniel's jokes are like. What's more, since Daniel is a genius, friendship with him results in a greater understanding of the material. Unfortunately we often don't know the true inner feelings of Daniel, but in this case where we simply care about estimating a causal effect, we don't have to worry about the fact that this variable is unobserved.
 
-
+```{=tex}
 \begin{tikzpicture}
   \node (D) {$D$};
   \node (Y) [right of=D] {$Y$};
@@ -250,5 +248,5 @@ Friendship with Daniel affects how well Daniel is feeling, which in turn affects
   \draw[dashed, ->] (X1) -- (X2);
   \draw[dashed, ->] (X2) -- (D);
 \end{tikzpicture}
-
+```
 I don't really think that this setting is very plausible in reality. In trying to think of an example I felt like most of the time a utilization of the backdoor criterion is only possible when we observe variables that we would not realistically observe. It's only in these fairly fabricated examples where we observe exactly the variables we need to observe in order to satisfy the backdoor criterion.
